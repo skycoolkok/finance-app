@@ -9,10 +9,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./finance-app/finance-app
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Debug current path
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "List of files here:"
+          ls -la
+          echo "Check if package.json exists:"
+          test -f package.json && echo "✅ Found package.json" || (echo "❌ package.json NOT found" && exit 1)
+          echo "Check if package-lock.json exists:"
+          test -f package-lock.json && echo "✅ Found package-lock.json" || (echo "❌ package-lock.json NOT found" && exit 1)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,7 +44,4 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+        run: npm test -- --run

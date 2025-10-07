@@ -491,6 +491,5 @@ function formatDueMessage(cardLabel: string, daysToDue: number, dueDate: Date, c
 
 function sanitizeForKey(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, '_')
-
 }
-export * from './new-apis';
+export * from './new-apis'
