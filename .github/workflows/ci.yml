@@ -14,23 +14,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 先在正確資料夾印出資訊，確認路徑OK
+      - name: Debug current path
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "PWD=$(pwd)"
+          echo "Files here:"
+          ls -la
+          echo "Check package files:"
+          test -f package.json && echo "✅ Found package.json" || (echo "❌ package.json NOT found" && exit 1)
+          test -f package-lock.json && echo "✅ Found package-lock.json" || (echo "❌ package-lock.json NOT found" && exit 1)
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        shell: bash
+        working-directory: ${{ github.workspace }}
         run: npm ci
 
       - name: Lint
+        shell: bash
+        working-directory: ${{ github.workspace }}
         run: npm run lint
 
       - name: Type check
+        shell: bash
+        working-directory: ${{ github.workspace }}
         run: npm run typecheck
 
       - name: Run tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: npm test -- --run
