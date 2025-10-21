@@ -31,3 +31,14 @@ export interface Transaction {
   note?: string
   userId: string
 }
+
+export interface Budget {
+  id: string
+  userId: string
+  category: string
+  limit: number
+  period: string
+  startDate: string
+  endDate: string
+  spent: number
+}

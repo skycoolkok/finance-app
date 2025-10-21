@@ -9,6 +9,13 @@ service cloud.firestore {
       return isSignedIn() && data.userId == request.auth.uid;
     }
 
+    match /budgets/{budgetId} {
+      allow get, list: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow delete: if isOwner(resource.data);
+    }
+
     match /notifications/{notificationId} {
       allow get, list: if isOwner(resource.data);
 

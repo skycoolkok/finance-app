@@ -3,3 +3,5 @@ coverage
 dist
 functions/lib
 *.log
+functions/showconfig.json
+pr-test.js

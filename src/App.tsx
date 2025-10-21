@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import BudgetForm from './components/BudgetForm'
+import BudgetList from './components/BudgetList'
+import { BudgetOverview } from './components/BudgetOverview'
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
@@ -11,13 +14,23 @@ import WalletList from './components/WalletList'
 import { initFcmAndRegister } from './messaging'
 import { auth } from './firebase'
 import type { Card, Wallet } from './models/types'
+import { useBudgets, type BudgetWithUsage } from './hooks/useBudgets'
 
 export default function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
+  const [editingBudget, setEditingBudget] = useState<BudgetWithUsage | null>(null)
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
 
   const userId = auth.currentUser?.uid ?? 'demo-user'
+  const { budgets, loading: budgetsLoading } = useBudgets(userId)
+
+  const handleManageBudgets = () => {
+    const element = document.getElementById('budgets-section')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   useEffect(() => {
     initFcmAndRegister(userId).catch(error => {
@@ -60,6 +73,12 @@ export default function App() {
 
       <Dashboard userId={userId} />
 
+      <BudgetOverview
+        budgets={budgets}
+        loading={budgetsLoading}
+        onManageBudgets={handleManageBudgets}
+      />
+
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
           <h2 className="text-xl font-semibold">Cards</h2>
@@ -91,6 +110,19 @@ export default function App() {
           )}
           <WalletList userId={userId} onEdit={handleEditWallet} />
         </div>
+      </section>
+
+      <section
+        id="budgets-section"
+        className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow"
+      >
+        <h2 className="text-xl font-semibold">Budgets</h2>
+        <BudgetForm
+          userId={userId}
+          existingBudget={editingBudget}
+          onComplete={() => setEditingBudget(null)}
+        />
+        <BudgetList budgets={budgets} loading={budgetsLoading} onEdit={setEditingBudget} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
