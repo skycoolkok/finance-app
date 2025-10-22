@@ -1,93 +1,154 @@
-// src/messaging.ts
-import { getToken, onMessage, isSupported } from 'firebase/messaging'
-import type { Messaging } from 'firebase/messaging'
-import { getAuth } from 'firebase/auth'
+﻿import { getToken, onMessage, isSupported, type Messaging } from 'firebase/messaging'
 import { getFirestore, doc, setDoc } from 'firebase/firestore'
-import { messagingPromise } from './firebase' // 沿用你現有的封裝
+import { getAuth } from 'firebase/auth'
+import { messagingPromise } from './firebase'
 
+const SW_URL = '/firebase-messaging-sw.js'
 const TOKEN_STORAGE_PREFIX = 'finance-app:fcmToken/'
 let onMessageBound = false
 
+const isSecureContext = () =>
+  typeof window !== 'undefined' &&
+  (window.isSecureContext ||
+    window.location.protocol === 'https:' ||
+    window.location.hostname === 'localhost')
+
+async function registerServiceWorker() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    console.warn('Service workers are not supported in this environment.')
+    return null
+  }
+
+  if (!isSecureContext()) {
+    console.warn(
+      'Firebase Messaging requires HTTPS or localhost. Service worker registration skipped.',
+    )
+    return null
+  }
+
+  try {
+    const existing = await navigator.serviceWorker.getRegistration(SW_URL)
+    if (existing) {
+      return existing
+    }
+    return await navigator.serviceWorker.register(SW_URL)
+  } catch (error) {
+    console.error('Failed to register messaging service worker', error)
+    return null
+  }
+}
+
 async function ensureNotificationPermission(): Promise<NotificationPermission> {
-  if (typeof window === 'undefined' || !('Notification' in window)) return 'denied'
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return 'denied'
+  }
+
   const current = Notification.permission
-  if (current === 'granted' || current === 'denied') return current
+  if (current === 'granted' || current === 'denied') {
+    return current
+  }
+
   return await Notification.requestPermission()
 }
 
-/**
- * 1) 檢查支援與權限
- * 2) 取得 token（用 .env 的 VITE_FIREBASE_VAPID_KEY）
- * 3) 存到 Firestore: users/{uid}/fcmTokens/{token}
- * 4) 綁定 onMessage（前景通知）
- */
-export async function initFcmAndRegister(userId: string | null) {
-  if (typeof window === 'undefined') return
-  if (!userId) return
+async function saveToken(userId: string, token: string) {
+  try {
+    const db = getFirestore()
+    await setDoc(
+      doc(db, `users/${userId}/fcmTokens/${token}`),
+      {
+        createdAt: Date.now(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      },
+      { merge: true },
+    )
+  } catch (error) {
+    console.error('Failed to persist FCM token', error)
+  }
+}
 
-  if (!(await isSupported())) {
-    console.warn('Firebase Messaging 不被此環境支援')
+async function bindForegroundMessaging(messaging: Messaging) {
+  if (onMessageBound) {
     return
   }
-  if (!('serviceWorker' in navigator)) {
-    console.warn('此瀏覽器不支援 Service Worker，無法註冊 FCM')
-    return
+
+  onMessage(messaging, payload => {
+    console.info('Foreground notification received', payload)
+    // TODO: display UI (toast/dialog) here if desired
+  })
+
+  onMessageBound = true
+}
+
+export async function initFcmAndRegister(userId: string | null) {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  if (!userId) {
+    console.warn('initFcmAndRegister: userId is required to register a device token.')
+    return null
+  }
+
+  if (!(await isSupported())) {
+    console.warn('Firebase Messaging is not supported in this browser.')
+    return null
+  }
+
+  const registration = await registerServiceWorker()
+  if (!registration) {
+    return null
   }
 
   let messaging: Messaging | null = null
   try {
     messaging = await messagingPromise
-  } catch (e) {
-    console.warn('取得 messaging 失敗：', e)
+  } catch (error) {
+    console.error('Unable to initialise Firebase messaging instance', error)
+    return null
   }
-  if (!messaging) return
+
+  if (!messaging) {
+    return null
+  }
 
   const permission = await ensureNotificationPermission()
   if (permission !== 'granted') {
-    console.warn('使用者未授權通知')
-    return
+    console.warn('Notification permission denied; skipping FCM registration.')
+    return null
   }
 
-  const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined
+  const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY as string | undefined
   if (!vapidKey) {
-    console.warn('缺少 VAPID 公鑰：請在 .env 設定 VITE_FIREBASE_VAPID_KEY')
-    return
+    console.warn('Missing VITE_FCM_VAPID_KEY; cannot request FCM token.')
+    return null
   }
 
-  const swReg = await navigator.serviceWorker.ready
-
-  let token: string | null = null
   try {
-    token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swReg })
-  } catch (e) {
-    console.warn('getToken 發生錯誤：', e)
-    return
-  }
-  if (!token) {
-    console.warn('未能取得 FCM token')
-    return
-  }
-
-  const auth = getAuth()
-  const db = getFirestore()
-  const uid = userId ?? auth.currentUser?.uid ?? 'TEST_UID'
-  await setDoc(
-    doc(db, `users/${uid}/fcmTokens/${token}`),
-    {
-      createdAt: Date.now(),
-      ua: navigator.userAgent ?? '',
-    },
-    { merge: true },
-  )
-
-  if (!onMessageBound) {
-    onMessage(messaging, payload => {
-      console.log('收到前景通知：', payload)
-      // TODO: 這裡可以接你的 UI（Toast/Modal）
+    const token = await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: registration,
     })
-    onMessageBound = true
-  }
 
-  localStorage.setItem(TOKEN_STORAGE_PREFIX + uid, token)
-  return token
+    if (!token) {
+      console.warn('FCM token could not be retrieved.')
+      return null
+    }
+
+    const auth = getAuth()
+    const uid = userId ?? auth.currentUser?.uid
+    if (!uid) {
+      console.warn('No authenticated user found; skipping token persistence.')
+      return token
+    }
+
+    await saveToken(uid, token)
+    localStorage.setItem(`${TOKEN_STORAGE_PREFIX}${uid}`, token)
+    await bindForegroundMessaging(messaging)
+
+    return token
+  } catch (error) {
+    console.error('Failed to obtain FCM token', error)
+    return null
+  }
 }
