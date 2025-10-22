@@ -1,28 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Card, Transaction, Wallet } from '../models/types'
+import { currency, date } from '../lib/fmt'
 
 type TransactionListProps = {
   userId: string | null
   onTransactionsChange?: (transactions: Transaction[]) => void
 }
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-})
-
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: '2-digit',
-})
-
 export default function TransactionList({ userId, onTransactionsChange }: TransactionListProps) {
+  const { t, i18n } = useTranslation()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [cardsById, setCardsById] = useState<Record<string, Card>>({})
   const [walletsById, setWalletsById] = useState<Record<string, Wallet>>({})
+  const locale = i18n.resolvedLanguage || i18n.language
 
   useEffect(() => {
     if (!userId) {
@@ -133,9 +126,9 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
 
   return (
     <div className="space-y-3 rounded border border-slate-800 bg-slate-900/30 p-5 shadow">
-      <h3 className="text-lg font-semibold text-slate-100">Recent Transactions</h3>
+      <h3 className="text-lg font-semibold text-slate-100">{t('transactions.list.title')}</h3>
       {enrichedTransactions.length === 0 && (
-        <p className="text-sm text-slate-500">No transactions recorded yet.</p>
+        <p className="text-sm text-slate-500">{t('transactions.list.empty')}</p>
       )}
       <ul className="space-y-2">
         {enrichedTransactions.map(tx => (
@@ -151,19 +144,24 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
                 </span>
               </p>
               <p className="text-xs text-slate-500">
-                {dateFormatter.format(new Date(tx.date))} ·{' '}
-                {tx.sourceType === 'card' ? 'Card' : 'Wallet'} · {tx.sourceName ?? 'Unknown source'}
+                {date(tx.date, locale)} ·{' '}
+                {tx.sourceType === 'card'
+                  ? t('transactions.form.fields.sourceType.options.card')
+                  : t('transactions.form.fields.sourceType.options.wallet')}{' '}
+                · {tx.sourceName ?? t('transactions.list.source.unknown')}
               </p>
               {tx.note && <p className="mt-1 text-xs text-slate-400">{tx.note}</p>}
             </div>
             <div className="text-right">
               <p className="text-base font-semibold text-emerald-400">
-                {currencyFormatter.format(tx.amount)}
+                {currency(tx.amount, locale)}
               </p>
               {tx.affectCurrentBill ? (
-                <p className="text-xs text-emerald-500">Counts toward bill</p>
+                <p className="text-xs text-emerald-500">
+                  {t('transactions.list.flags.affectsBill')}
+                </p>
               ) : (
-                <p className="text-xs text-slate-500">Excluded from bill</p>
+                <p className="text-xs text-slate-500">{t('transactions.list.flags.excluded')}</p>
               )}
             </div>
           </li>

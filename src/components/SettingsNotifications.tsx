@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '../firebase'
 
@@ -7,6 +8,7 @@ type SettingsNotificationsProps = {
 }
 
 export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState<'push' | 'email' | null>(null)
@@ -15,7 +17,7 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
 
   const handleSend = async (mode: 'push' | 'email') => {
     if (!userId) {
-      setError('Sign in to send test notifications.')
+      setError(t('notifications.settings.messages.missingUser'))
       return
     }
 
@@ -30,14 +32,18 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           { successCount: number; failureCount: number }
         >(functions, 'sendTestPush')
         const result = await callable({ userId })
-        setStatus(`Push delivered to ${result.data.successCount} device(s).`)
+        setStatus(
+          t('notifications.settings.messages.pushSuccess', {
+            count: result.data.successCount,
+          }),
+        )
       } else {
         const callable = httpsCallable<{ userId: string }, { delivered: boolean }>(
           functions,
           'sendTestEmail',
         )
         await callable({ userId })
-        setStatus('Test email sent via Resend.')
+        setStatus(t('notifications.settings.messages.emailSuccess'))
       }
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : String(sendError))
@@ -49,10 +55,10 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
   return (
     <section className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
       <header>
-        <h2 className="text-xl font-semibold text-slate-100">Notification Settings</h2>
-        <p className="text-sm text-slate-500">
-          Trigger test notifications to verify device tokens and email configuration.
-        </p>
+        <h2 className="text-xl font-semibold text-slate-100">
+          {t('notifications.settings.title')}
+        </h2>
+        <p className="text-sm text-slate-500">{t('notifications.settings.subtitle')}</p>
       </header>
 
       {status && (
@@ -75,7 +81,9 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           disabled={disabled}
           className="w-full rounded bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/40"
         >
-          {isSending === 'push' ? 'Sending push...' : 'Send Test Push'}
+          {isSending === 'push'
+            ? t('notifications.settings.sending.push')
+            : t('notifications.settings.buttons.sendPush')}
         </button>
         <button
           type="button"
@@ -85,11 +93,15 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           disabled={disabled}
           className="w-full rounded bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-blue-500/40"
         >
-          {isSending === 'email' ? 'Sending email...' : 'Send Test Email'}
+          {isSending === 'email'
+            ? t('notifications.settings.sending.email')
+            : t('notifications.settings.buttons.sendEmail')}
         </button>
       </div>
 
-      {!userId && <p className="text-xs text-slate-400">Sign in to access notification tools.</p>}
+      {!userId && (
+        <p className="text-xs text-slate-400">{t('notifications.settings.messages.noAccess')}</p>
+      )}
     </section>
   )
 }

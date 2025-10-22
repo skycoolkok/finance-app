@@ -1,42 +1,44 @@
-import { CardSummary } from './CardSummary'
-import { useCardSummaries } from '../hooks/useCardSummaries'
+import { useTranslation } from 'react-i18next'
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-})
+import { useCardSummaries } from '../hooks/useCardSummaries'
+import { currency } from '../lib/fmt'
+import { CardSummary } from './CardSummary'
 
 type DashboardProps = {
   userId: string | null
 }
 
 export function Dashboard({ userId }: DashboardProps) {
+  const { t, i18n } = useTranslation()
   const { summaries, totals, loading } = useCardSummaries(userId)
+  const locale = i18n.resolvedLanguage || i18n.language
 
   return (
     <section className="space-y-5 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-slate-100">Billing Dashboard</h2>
-          <p className="text-sm text-slate-400">
-            Track statement cycles, utilization, and upcoming due dates across your cards.
-          </p>
+          <h2 className="text-xl font-semibold text-slate-100">{t('dashboard.title')}</h2>
+          <p className="text-sm text-slate-400">{t('dashboard.subtitle')}</p>
         </div>
         <div className="rounded bg-slate-950/60 px-4 py-2 text-right">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Total Current Due</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">
+            {t('dashboard.totalCurrentDue')}
+          </p>
           <p className="text-lg font-semibold text-emerald-400">
-            {currencyFormatter.format(totals.currentDue)}
+            {currency(totals.currentDue, locale)}
           </p>
           <p className="text-xs text-slate-500">
-            Next Estimate {currencyFormatter.format(totals.nextEstimate)}
+            {t('dashboard.nextEstimate', {
+              amount: currency(totals.nextEstimate, locale),
+            })}
           </p>
         </div>
       </header>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading billing data…</p>
+        <p className="text-sm text-slate-500">{t('dashboard.loading')}</p>
       ) : summaries.length === 0 ? (
-        <p className="text-sm text-slate-500">Add a card to see billing insights.</p>
+        <p className="text-sm text-slate-500">{t('dashboard.empty')}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {summaries.map(summary => (

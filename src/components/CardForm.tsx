@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Card } from '../models/types'
@@ -28,6 +29,7 @@ const INITIAL_STATE: CardFormState = {
 }
 
 export default function CardForm({ userId, existingCard, onComplete }: CardFormProps) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<CardFormState>(INITIAL_STATE)
 
   const isEditing = useMemo(() => Boolean(existingCard), [existingCard])
@@ -62,7 +64,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
     event.preventDefault()
 
     if (!userId) {
-      alert('User not available. Please sign in to manage cards.')
+      alert(t('cards.form.messages.missingUser'))
       return
     }
 
@@ -79,17 +81,17 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
 
       if (isEditing && existingCard) {
         await updateDoc(doc(db, 'cards', existingCard.id), payload)
-        alert('Card updated!')
+        alert(t('cards.form.messages.updateSuccess'))
       } else {
         await addDoc(collection(db, 'cards'), payload)
-        alert('Card added!')
+        alert(t('cards.form.messages.createSuccess'))
       }
 
       setForm(INITIAL_STATE)
       onComplete?.()
     } catch (error) {
       console.error(error)
-      alert('Error saving card')
+      alert(t('cards.form.messages.saveError'))
     }
   }
 
@@ -100,10 +102,12 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2 rounded border p-4">
-      <h2 className="text-lg font-semibold">{isEditing ? 'Edit Card' : 'Add Card'}</h2>
+      <h2 className="text-lg font-semibold">
+        {isEditing ? t('cards.form.title.edit') : t('cards.form.title.create')}
+      </h2>
       <input
         name="alias"
-        placeholder="Card Name"
+        placeholder={t('cards.form.placeholders.alias')}
         value={form.alias}
         onChange={handleChange}
         className="w-full rounded border p-2"
@@ -111,7 +115,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       />
       <input
         name="issuer"
-        placeholder="Bank"
+        placeholder={t('cards.form.placeholders.issuer')}
         value={form.issuer}
         onChange={handleChange}
         className="w-full rounded border p-2"
@@ -119,7 +123,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       />
       <input
         name="last4"
-        placeholder="Last 4 digits"
+        placeholder={t('cards.form.placeholders.last4')}
         value={form.last4}
         onChange={handleChange}
         maxLength={4}
@@ -129,7 +133,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       <input
         type="number"
         name="statementDay"
-        placeholder="Statement Day"
+        placeholder={t('cards.form.placeholders.statementDay')}
         value={form.statementDay}
         onChange={handleChange}
         className="w-full rounded border p-2"
@@ -140,7 +144,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       <input
         type="number"
         name="dueDay"
-        placeholder="Due Day"
+        placeholder={t('cards.form.placeholders.dueDay')}
         value={form.dueDay}
         onChange={handleChange}
         className="w-full rounded border p-2"
@@ -151,7 +155,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       <input
         type="number"
         name="limitAmount"
-        placeholder="Limit Amount"
+        placeholder={t('cards.form.placeholders.limitAmount')}
         value={form.limitAmount}
         onChange={handleChange}
         className="w-full rounded border p-2"
@@ -160,7 +164,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
       />
       <div className="flex gap-2">
         <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white">
-          {isEditing ? 'Update Card' : 'Add Card'}
+          {isEditing ? t('cards.form.actions.update') : t('cards.form.actions.create')}
         </button>
         {isEditing && (
           <button
@@ -168,7 +172,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
             onClick={handleCancel}
             className="rounded border border-slate-400 px-4 py-2 text-slate-700"
           >
-            Cancel
+            {t('cards.form.actions.cancel')}
           </button>
         )}
       </div>

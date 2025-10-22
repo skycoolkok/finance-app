@@ -1,20 +1,17 @@
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
+
+import { currency, date } from '../lib/fmt'
 import type { CardSummary as CardSummaryType } from '../hooks/useCardSummaries'
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-})
-
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: '2-digit',
-})
 
 type CardSummaryProps = {
   summary: CardSummaryType
 }
 
 export function CardSummary({ summary }: CardSummaryProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.resolvedLanguage || i18n.language
+
   const {
     card,
     currentDue,
@@ -27,10 +24,9 @@ export function CardSummary({ summary }: CardSummaryProps) {
   } = summary
 
   const utilizationPct = Math.min(utilization * 100, 999)
-
   const utilizationClass = getUtilizationClass(utilizationPct)
   const dueBadgeClass = getDueBadgeClass(daysToDue)
-  const dueLabel = getDueLabel(daysToDue)
+  const dueLabel = getDueLabelText(daysToDue, t)
 
   return (
     <article className="space-y-3 rounded border border-slate-800 bg-slate-950/60 p-4 shadow">
@@ -42,31 +38,29 @@ export function CardSummary({ summary }: CardSummaryProps) {
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${utilizationClass}`}>
-          Utilization {utilizationPct.toFixed(0)}%
+          {t('cards.summary.utilization', { percentage: utilizationPct.toFixed(0) })}
         </span>
       </header>
 
       <dl className="grid gap-3 sm:grid-cols-2">
         <div>
-          <dt className="text-sm text-slate-400">Current Due</dt>
-          <dd className="text-xl font-semibold text-slate-100">
-            {currencyFormatter.format(currentDue)}
+          <dt className="text-sm text-slate-400">{t('cards.summary.currentDue')}</dt>
+          <dd className="text-xl font-semibold text-slate-100">{currency(currentDue, locale)}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-slate-400">{t('cards.summary.nextEstimate')}</dt>
+          <dd className="text-xl font-semibold text-slate-100">{currency(nextEstimate, locale)}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-slate-400">{t('cards.summary.billingCycle')}</dt>
+          <dd className="text-sm text-slate-200">
+            {date(cycleStartISO, locale)} - {date(cycleEndISO, locale)}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-slate-400">Next Estimate</dt>
-          <dd className="text-xl font-semibold text-slate-100">
-            {currencyFormatter.format(nextEstimate)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-sm text-slate-400">Billing Cycle</dt>
-          <dd className="text-sm text-slate-200">{formatRange(cycleStartISO, cycleEndISO)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-slate-400">Due Date</dt>
+          <dt className="text-sm text-slate-400">{t('cards.summary.dueDate')}</dt>
           <dd className="flex items-center gap-2 text-sm text-slate-200">
-            <span>{formatDate(dueDateISO)}</span>
+            <span>{date(dueDateISO, locale)}</span>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ${dueBadgeClass}`}>
               {dueLabel}
             </span>
@@ -75,16 +69,6 @@ export function CardSummary({ summary }: CardSummaryProps) {
       </dl>
     </article>
   )
-}
-
-function formatRange(startISO: string, endISO: string) {
-  const start = new Date(startISO)
-  const end = new Date(endISO)
-  return `${dateFormatter.format(start)} - ${dateFormatter.format(end)}`
-}
-
-function formatDate(iso: string) {
-  return dateFormatter.format(new Date(iso))
 }
 
 function getUtilizationClass(utilizationPct: number) {
@@ -113,15 +97,15 @@ function getDueBadgeClass(daysToDue: number) {
   return 'bg-slate-700/40 text-slate-200'
 }
 
-function getDueLabel(daysToDue: number) {
+function getDueLabelText(daysToDue: number, t: TFunction<'common'>) {
   if (daysToDue < 0) {
-    return `${Math.abs(daysToDue)}d overdue`
+    return t('cards.summary.dueLabel.overdue', { count: Math.abs(daysToDue) })
   }
   if (daysToDue === 0) {
-    return 'Due today'
+    return t('cards.summary.dueLabel.dueToday')
   }
   if (daysToDue === 1) {
-    return 'Due tomorrow'
+    return t('cards.summary.dueLabel.dueTomorrow')
   }
-  return `${daysToDue} days`
+  return t('cards.summary.dueLabel.days', { count: daysToDue })
 }

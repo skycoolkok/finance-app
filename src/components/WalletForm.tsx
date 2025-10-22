@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   addDoc,
   collection,
@@ -35,6 +36,7 @@ const INITIAL_STATE: WalletFormState = {
 }
 
 export default function WalletForm({ userId, existingWallet, onComplete }: WalletFormProps) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<WalletFormState>(INITIAL_STATE)
   const [cards, setCards] = useState<Card[]>([])
 
@@ -155,7 +157,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
     event.preventDefault()
 
     if (!userId) {
-      alert('User not available. Please sign in to manage wallets.')
+      alert(t('wallets.form.messages.missingUser'))
       return
     }
 
@@ -172,16 +174,16 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
 
       if (isEditing && existingWallet) {
         await updateDoc(doc(db, 'wallets', existingWallet.id), payload)
-        alert('Wallet updated!')
+        alert(t('wallets.form.messages.updateSuccess'))
       } else {
         await addDoc(collection(db, 'wallets'), payload)
-        alert('Wallet added!')
+        alert(t('wallets.form.messages.createSuccess'))
       }
 
       resetState()
     } catch (error) {
       console.error(error)
-      alert('Error saving wallet')
+      alert(t('wallets.form.messages.saveError'))
     }
   }
 
@@ -196,23 +198,23 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
     >
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-100">
-          {isEditing ? 'Edit Wallet' : 'Add Wallet'}
+          {isEditing ? t('wallets.form.title.edit') : t('wallets.form.title.create')}
         </h3>
         {isEditing && (
           <button type="button" onClick={handleCancel} className="text-sm text-slate-400 underline">
-            Cancel
+            {t('wallets.form.actions.cancel')}
           </button>
         )}
       </div>
 
       <div className="space-y-1">
         <label className="block text-sm font-medium text-slate-300" htmlFor="wallet-name">
-          Wallet Name
+          {t('wallets.form.labels.name')}
         </label>
         <input
           id="wallet-name"
           name="name"
-          placeholder="e.g. Daily Wallet"
+          placeholder={t('wallets.form.placeholders.name')}
           value={form.name}
           onChange={handleInputChange}
           className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100 placeholder:text-slate-500"
@@ -222,7 +224,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
 
       <div className="space-y-1">
         <label className="block text-sm font-medium text-slate-300" htmlFor="wallet-card">
-          Linked Card (optional)
+          {t('wallets.form.labels.linkedCard')}
         </label>
         <select
           id="wallet-card"
@@ -230,7 +232,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
           onChange={handleSelectChange}
           className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
         >
-          <option value="">No linked card</option>
+          <option value="">{t('wallets.form.placeholders.linkedCardNone')}</option>
           {cards.map(card => (
             <option key={card.id} value={card.id}>
               {card.alias || card.issuer} ({card.issuer}@{card.last4})
@@ -246,18 +248,18 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
           onChange={handleCheckboxChange}
           className="h-4 w-4 rounded border-slate-600 bg-slate-950"
         />
-        Set as default wallet
+        {t('wallets.form.checkbox')}
       </label>
 
       <div className="space-y-1">
         <label className="block text-sm font-medium text-slate-300" htmlFor="wallet-note">
-          Note
+          {t('wallets.form.labels.note')}
         </label>
         <textarea
           id="wallet-note"
           value={form.note}
           onChange={handleTextareaChange}
-          placeholder="Add notes about this wallet"
+          placeholder={t('wallets.form.placeholders.note')}
           className="h-24 w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100 placeholder:text-slate-500"
         />
       </div>
@@ -266,7 +268,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
         type="submit"
         className="w-full rounded bg-emerald-500 px-4 py-2 font-medium text-white transition hover:bg-emerald-400"
       >
-        {isEditing ? 'Update Wallet' : 'Add Wallet'}
+        {isEditing ? t('wallets.form.actions.update') : t('wallets.form.actions.create')}
       </button>
     </form>
   )

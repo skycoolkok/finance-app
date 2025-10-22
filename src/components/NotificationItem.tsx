@@ -1,12 +1,8 @@
-import { type UserNotification } from '../hooks/useNotifications'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-})
+import { type UserNotification } from '../hooks/useNotifications'
+import { formatDate } from '../lib/fmt'
 
 type NotificationItemProps = {
   notification: UserNotification
@@ -14,7 +10,9 @@ type NotificationItemProps = {
 }
 
 export function NotificationItem({ notification, onMarkRead }: NotificationItemProps) {
+  const { t, i18n } = useTranslation()
   const { id, message, type, channel, sentAt, read } = notification
+  const locale = i18n.resolvedLanguage || i18n.language
 
   const handleMarkRead = () => {
     if (read || !onMarkRead) {
@@ -37,13 +35,19 @@ export function NotificationItem({ notification, onMarkRead }: NotificationItemP
                 type,
               )}`}
             >
-              {typeLabel(type)}
+              {typeLabel(type, t)}
             </span>
-            <span className="text-xs uppercase tracking-wide text-slate-500">{channel}</span>
+            <span className="text-xs uppercase tracking-wide text-slate-500">
+              {t(`notifications.channels.${channel}`, { defaultValue: channel })}
+            </span>
             {!read && <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />}
           </div>
           <p className="text-sm text-slate-200">{message}</p>
-          {sentAt && <p className="text-xs text-slate-500">{dateFormatter.format(sentAt)}</p>}
+          {sentAt && (
+            <p className="text-xs text-slate-500">
+              {formatDate(sentAt, locale, { dateStyle: 'medium', timeStyle: 'short' })}
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -55,28 +59,20 @@ export function NotificationItem({ notification, onMarkRead }: NotificationItemP
               : 'border-emerald-500 text-emerald-400 hover:bg-emerald-500/10'
           }`}
         >
-          {read ? 'Read' : 'Mark read'}
+          {read ? t('notifications.item.read') : t('notifications.item.markRead')}
         </button>
       </div>
     </li>
   )
 }
 
-function typeLabel(type: string) {
-  switch (type) {
-    case 'due-reminder':
-      return 'Due Reminder'
-    case 'utilization-80':
-      return 'Util 80%'
-    case 'utilization-95':
-      return 'Util 95%'
-    case 'test-push':
-      return 'Test Push'
-    case 'test-email':
-      return 'Test Email'
-    default:
-      return type.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+function typeLabel(type: string, t: TFunction<'common'>) {
+  const key = `notifications.types.${type}`
+  const translated = t(key)
+  if (translated !== key) {
+    return translated
   }
+  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
 }
 
 function typeColor(type: string) {

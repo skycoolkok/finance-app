@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { addDoc, collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Card, Transaction, Wallet } from '../models/types'
@@ -30,6 +31,7 @@ const INITIAL_STATE: TransactionFormState = {
 }
 
 export default function TransactionForm({ userId }: TransactionFormProps) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<TransactionFormState>(INITIAL_STATE)
   const [cards, setCards] = useState<Card[]>([])
   const [wallets, setWallets] = useState<Wallet[]>([])
@@ -158,18 +160,18 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
     event.preventDefault()
 
     if (!userId) {
-      alert('Please sign in before adding transactions.')
+      alert(t('transactions.form.messages.missingUser'))
       return
     }
 
     if (!form.sourceId) {
-      alert('Please select a source before saving the transaction.')
+      alert(t('transactions.form.messages.missingSource'))
       return
     }
 
     const numericAmount = Number(form.amount)
     if (Number.isNaN(numericAmount)) {
-      alert('Amount must be a number.')
+      alert(t('transactions.form.messages.invalidAmount'))
       return
     }
 
@@ -196,11 +198,11 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       }
 
       await addDoc(collection(db, 'transactions'), payload)
-      alert('Transaction recorded!')
+      alert(t('transactions.form.messages.createSuccess'))
       resetForm()
     } catch (error) {
       console.error(error)
-      alert('Failed to save transaction')
+      alert(t('transactions.form.messages.saveError'))
     }
   }
 
@@ -210,7 +212,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       className="space-y-3 rounded border border-slate-800 bg-slate-900/40 p-5 shadow"
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-100">Add Transaction</h3>
+        <h3 className="text-lg font-semibold text-slate-100">{t('transactions.form.title')}</h3>
         <label className="flex items-center gap-2 text-sm text-slate-300">
           <input
             type="checkbox"
@@ -219,14 +221,14 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
             onChange={handleInputChange}
             className="h-4 w-4 rounded border-slate-600 bg-slate-950"
           />
-          Affect current bill
+          {t('transactions.form.fields.affectCurrentBill')}
         </label>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label htmlFor="transaction-date" className="text-sm text-slate-300">
-            Date
+            {t('transactions.form.fields.date')}
           </label>
           <input
             id="transaction-date"
@@ -241,7 +243,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
 
         <div className="space-y-1">
           <label htmlFor="transaction-amount" className="text-sm text-slate-300">
-            Amount
+            {t('transactions.form.fields.amount')}
           </label>
           <input
             id="transaction-amount"
@@ -259,12 +261,12 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label htmlFor="transaction-merchant" className="text-sm text-slate-300">
-            Merchant
+            {t('transactions.form.fields.merchant.label')}
           </label>
           <input
             id="transaction-merchant"
             name="merchant"
-            placeholder="Store name"
+            placeholder={t('transactions.form.fields.merchant.placeholder')}
             value={form.merchant}
             onChange={handleInputChange}
             className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
@@ -273,12 +275,12 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
         </div>
         <div className="space-y-1">
           <label htmlFor="transaction-category" className="text-sm text-slate-300">
-            Category
+            {t('transactions.form.fields.category.label')}
           </label>
           <input
             id="transaction-category"
             name="category"
-            placeholder="Dining, Travel, etc."
+            placeholder={t('transactions.form.fields.category.placeholder')}
             value={form.category}
             onChange={handleInputChange}
             className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
@@ -290,7 +292,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label htmlFor="transaction-source-type" className="text-sm text-slate-300">
-            Source Type
+            {t('transactions.form.fields.sourceType.label')}
           </label>
           <select
             id="transaction-source-type"
@@ -298,14 +300,18 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
             onChange={handleSourceTypeChange}
             className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
           >
-            <option value="card">Card</option>
-            <option value="wallet">Wallet</option>
+            <option value="card">{t('transactions.form.fields.sourceType.options.card')}</option>
+            <option value="wallet">
+              {t('transactions.form.fields.sourceType.options.wallet')}
+            </option>
           </select>
         </div>
 
         <div className="space-y-1">
           <label htmlFor="transaction-source" className="text-sm text-slate-300">
-            {form.sourceType === 'card' ? 'Card' : 'Wallet'}
+            {form.sourceType === 'card'
+              ? t('transactions.form.fields.source.label.card')
+              : t('transactions.form.fields.source.label.wallet')}
           </label>
           <select
             id="transaction-source"
@@ -315,13 +321,18 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
             required
           >
             <option value="" disabled>
-              Select {form.sourceType}
+              {t('transactions.form.fields.source.placeholder', {
+                type:
+                  form.sourceType === 'card'
+                    ? t('transactions.form.fields.sourceType.options.card')
+                    : t('transactions.form.fields.sourceType.options.wallet'),
+              })}
             </option>
             {availableSources.map(item => (
               <option key={item.id} value={item.id}>
                 {'issuer' in item
                   ? `${item.alias || item.issuer} (${item.issuer}@${item.last4})`
-                  : `${item.name}${item.isDefault ? ' • Default' : ''}`}
+                  : `${item.name}${item.isDefault ? ` • ${t('wallets.list.defaultBadge')}` : ''}`}
               </option>
             ))}
           </select>
@@ -330,14 +341,14 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
 
       <div className="space-y-1">
         <label htmlFor="transaction-note" className="text-sm text-slate-300">
-          Note
+          {t('transactions.form.fields.note.label')}
         </label>
         <textarea
           id="transaction-note"
           name="note"
           value={form.note}
           onChange={handleInputChange}
-          placeholder="Optional notes"
+          placeholder={t('transactions.form.fields.note.placeholder')}
           className="h-20 w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
         />
       </div>
@@ -346,7 +357,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
         type="submit"
         className="w-full rounded bg-blue-500 px-4 py-2 font-medium text-white transition hover:bg-blue-400"
       >
-        Save Transaction
+        {t('transactions.form.actions.submit')}
       </button>
     </form>
   )

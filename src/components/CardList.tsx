@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Card } from '../models/types'
+import { currency } from '../lib/fmt'
 
 type CardListProps = {
   userId: string | null
@@ -9,6 +11,8 @@ type CardListProps = {
 }
 
 export default function CardList({ userId, onEdit }: CardListProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.resolvedLanguage || i18n.language
   const [cards, setCards] = useState<Card[]>([])
 
   useEffect(() => {
@@ -41,19 +45,17 @@ export default function CardList({ userId, onEdit }: CardListProps) {
   const handleDelete = async (cardId: string) => {
     try {
       await deleteDoc(doc(db, 'cards', cardId))
-      alert('Card deleted')
+      alert(t('cards.list.messages.deleteSuccess'))
     } catch (error) {
       console.error(error)
-      alert('Error deleting card')
+      alert(t('cards.list.messages.deleteError'))
     }
   }
 
   return (
     <div className="space-y-2 p-4">
-      <h2 className="text-lg font-bold">My Cards</h2>
-      {cards.length === 0 && (
-        <p className="text-sm text-slate-500">No cards yet. Add your first card above.</p>
-      )}
+      <h2 className="text-lg font-bold">{t('cards.list.title')}</h2>
+      {cards.length === 0 && <p className="text-sm text-slate-500">{t('cards.list.empty')}</p>}
       {cards.map(card => (
         <div
           key={card.id}
@@ -66,8 +68,12 @@ export default function CardList({ userId, onEdit }: CardListProps) {
             <p className="text-sm text-slate-500">**** {card.last4}</p>
           </div>
           <div className="text-right text-sm">
-            <p>Limit: {card.limitAmount}</p>
-            <p>Due: {card.dueDay}</p>
+            <p>
+              {t('cards.list.limit')}: {currency(Number(card.limitAmount ?? 0), locale)}
+            </p>
+            <p>
+              {t('cards.list.due')}: {card.dueDay}
+            </p>
           </div>
           <div className="flex gap-2">
             <button
@@ -75,14 +81,14 @@ export default function CardList({ userId, onEdit }: CardListProps) {
               onClick={() => onEdit(card)}
               className="rounded border border-blue-500 px-3 py-1 text-blue-500"
             >
-              Edit
+              {t('cards.list.actions.edit')}
             </button>
             <button
               type="button"
               onClick={() => handleDelete(card.id)}
               className="rounded border border-red-500 px-3 py-1 text-red-500"
             >
-              Delete
+              {t('cards.list.actions.delete')}
             </button>
           </div>
         </div>

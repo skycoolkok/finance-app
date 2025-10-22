@@ -1,0 +1,250 @@
+{
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "zhTW": "繁體中文"
+  },
+  "app": {
+    "title": "Finance App",
+    "subtitle": "Manage cards, wallets, transactions, and reminders with Firestore-backed, real-time updates.",
+    "sections": {
+      "cards": "Cards",
+      "wallets": "Wallets",
+      "transactions": "Transactions",
+      "notifications": "Notifications"
+    },
+    "actions": {
+      "addWallet": "Add Wallet",
+      "addCard": "Add Card"
+    },
+    "hero": {
+      "title": "Hello Finance App",
+      "subtitle": "Welcome to your progressive web experience built with React, Vite, and Tailwind CSS."
+    }
+  },
+  "dashboard": {
+    "title": "Billing Dashboard",
+    "subtitle": "Track statement cycles, utilization, and upcoming due dates across your cards.",
+    "totalCurrentDue": "Total Current Due",
+    "nextEstimate": "Next Estimate {{amount}}",
+    "loading": "Loading billing data...",
+    "empty": "Add a card to see billing insights."
+  },
+  "cards": {
+    "sectionTitle": "Cards",
+    "form": {
+      "title": {
+        "create": "Add Card",
+        "edit": "Edit Card"
+      },
+      "placeholders": {
+        "alias": "Card Name",
+        "issuer": "Bank",
+        "last4": "Last 4 digits",
+        "statementDay": "Statement Day",
+        "dueDay": "Due Day",
+        "limitAmount": "Limit Amount"
+      },
+      "actions": {
+        "create": "Add Card",
+        "update": "Update Card",
+        "cancel": "Cancel"
+      },
+      "messages": {
+        "missingUser": "User not available. Please sign in to manage cards.",
+        "createSuccess": "Card added!",
+        "updateSuccess": "Card updated!",
+        "saveError": "Error saving card"
+      }
+    },
+    "list": {
+      "title": "My Cards",
+      "empty": "No cards yet. Add your first card above.",
+      "limit": "Limit",
+      "due": "Due",
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "messages": {
+        "deleteSuccess": "Card deleted",
+        "deleteError": "Error deleting card"
+      }
+    },
+    "summary": {
+      "utilization": "Utilization {{percentage}}%",
+      "currentDue": "Current Due",
+      "nextEstimate": "Next Estimate",
+      "billingCycle": "Billing Cycle",
+      "dueDate": "Due Date",
+      "dueLabel": {
+        "overdue": "{{count}}d overdue",
+        "dueToday": "Due today",
+        "dueTomorrow": "Due tomorrow",
+        "days": "{{count}} days"
+      }
+    }
+  },
+  "wallets": {
+    "sectionTitle": "Wallets",
+    "form": {
+      "title": {
+        "create": "Add Wallet",
+        "edit": "Edit Wallet"
+      },
+      "labels": {
+        "name": "Wallet Name",
+        "linkedCard": "Linked Card (optional)",
+        "note": "Note"
+      },
+      "placeholders": {
+        "name": "e.g. Daily Wallet",
+        "linkedCardNone": "No linked card",
+        "note": "Add notes about this wallet"
+      },
+      "checkbox": "Set as default wallet",
+      "actions": {
+        "create": "Add Wallet",
+        "update": "Update Wallet",
+        "cancel": "Cancel"
+      },
+      "messages": {
+        "missingUser": "User not available. Please sign in to manage wallets.",
+        "createSuccess": "Wallet added!",
+        "updateSuccess": "Wallet updated!",
+        "saveError": "Error saving wallet"
+      }
+    },
+    "list": {
+      "title": "Wallets",
+      "empty": "No wallets yet. Create one to get started.",
+      "noLinkedCard": "No linked card",
+      "defaultBadge": "Default",
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "messages": {
+        "confirmDelete": "Delete this wallet?",
+        "deleteSuccess": "Wallet deleted",
+        "deleteError": "Error deleting wallet"
+      }
+    }
+  },
+  "transactions": {
+    "form": {
+      "title": "Add Transaction",
+      "fields": {
+        "affectCurrentBill": "Affect current bill",
+        "date": "Date",
+        "amount": "Amount",
+        "merchant": {
+          "label": "Merchant",
+          "placeholder": "Store name"
+        },
+        "category": {
+          "label": "Category",
+          "placeholder": "Dining, Travel, etc."
+        },
+        "sourceType": {
+          "label": "Source Type",
+          "options": {
+            "card": "Card",
+            "wallet": "Wallet"
+          }
+        },
+        "source": {
+          "label": {
+            "card": "Card",
+            "wallet": "Wallet"
+          },
+          "placeholder": "Select {{type}}"
+        },
+        "note": {
+          "label": "Note",
+          "placeholder": "Optional notes"
+        }
+      },
+      "actions": {
+        "submit": "Save Transaction"
+      },
+      "messages": {
+        "missingUser": "Please sign in before adding transactions.",
+        "missingSource": "Please select a source before saving the transaction.",
+        "invalidAmount": "Amount must be a number.",
+        "createSuccess": "Transaction recorded!",
+        "saveError": "Failed to save transaction"
+      }
+    },
+    "list": {
+      "title": "Recent Transactions",
+      "empty": "No transactions recorded yet.",
+      "source": {
+        "card": "Card",
+        "wallet": "Wallet",
+        "unknown": "Unknown source"
+      },
+      "flags": {
+        "affectsBill": "Counts toward bill",
+        "excluded": "Excluded from bill"
+      }
+    }
+  },
+  "notifications": {
+    "center": {
+      "title": "Notifications",
+      "subtitle": "Stay on top of your due dates and utilization alerts. Unread: {{count}}",
+      "signInPrompt": "Sign in to view your reminders.",
+      "filters": {
+        "all": "All types"
+      },
+      "actions": {
+        "refresh": "Refresh",
+        "markAllRead": "Mark all read",
+        "loadMore": "Load more"
+      },
+      "empty": "No notifications yet. You'll see reminders here once they arrive.",
+      "loading": "Loading..."
+    },
+    "types": {
+      "due-reminder": "Due Reminder",
+      "utilization-80": "Utilization ≥80%",
+      "utilization-95": "Utilization ≥95%",
+      "test-push": "Test Push",
+      "test-email": "Test Email"
+    },
+    "channels": {
+      "push": "Push",
+      "email": "Email"
+    },
+    "item": {
+      "read": "Read",
+      "markRead": "Mark read"
+    },
+    "settings": {
+      "title": "Notification Settings",
+      "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
+      "buttons": {
+        "sendPush": "Send Test Push",
+        "sendEmail": "Send Test Email"
+      },
+      "sending": {
+        "push": "Sending push...",
+        "email": "Sending email..."
+      },
+      "messages": {
+        "missingUser": "Sign in to send test notifications.",
+        "pushSuccess": "Push delivered to {{count}} device(s).",
+        "emailSuccess": "Test email sent via Resend.",
+        "noAccess": "Sign in to access notification tools."
+      }
+    }
+  },
+  "general": {
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    }
+  }
+}

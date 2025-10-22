@@ -1,0 +1,250 @@
+{
+  "language": {
+    "label": "語言",
+    "en": "English",
+    "zhTW": "繁體中文"
+  },
+  "app": {
+    "title": "理財應用",
+    "subtitle": "使用 Firestore 即時同步，管理卡片、錢包、交易與通知。",
+    "sections": {
+      "cards": "信用卡",
+      "wallets": "錢包",
+      "transactions": "交易",
+      "notifications": "通知"
+    },
+    "actions": {
+      "addWallet": "新增錢包",
+      "addCard": "新增信用卡"
+    },
+    "hero": {
+      "title": "理財 App 您好",
+      "subtitle": "歡迎使用以 React、Vite 與 Tailwind CSS 打造的漸進式網頁體驗。"
+    }
+  },
+  "dashboard": {
+    "title": "帳單儀表板",
+    "subtitle": "追蹤帳單週期、使用率與即將到期的付款日。",
+    "totalCurrentDue": "本期應繳總額",
+    "nextEstimate": "下期預估 {{amount}}",
+    "loading": "載入帳單資料中…",
+    "empty": "新增信用卡即可檢視帳單洞察。"
+  },
+  "cards": {
+    "sectionTitle": "信用卡",
+    "form": {
+      "title": {
+        "create": "新增信用卡",
+        "edit": "編輯信用卡"
+      },
+      "placeholders": {
+        "alias": "卡片名稱",
+        "issuer": "發卡銀行",
+        "last4": "末四碼",
+        "statementDay": "結帳日",
+        "dueDay": "繳款日",
+        "limitAmount": "信用額度"
+      },
+      "actions": {
+        "create": "新增信用卡",
+        "update": "更新信用卡",
+        "cancel": "取消"
+      },
+      "messages": {
+        "missingUser": "找不到使用者，請先登入以管理信用卡。",
+        "createSuccess": "已新增信用卡！",
+        "updateSuccess": "已更新信用卡！",
+        "saveError": "儲存信用卡時發生錯誤。"
+      }
+    },
+    "list": {
+      "title": "我的信用卡",
+      "empty": "目前沒有卡片，請先在上方新增。",
+      "limit": "額度",
+      "due": "繳款日",
+      "actions": {
+        "edit": "編輯",
+        "delete": "刪除"
+      },
+      "messages": {
+        "deleteSuccess": "已刪除信用卡",
+        "deleteError": "刪除信用卡時發生錯誤。"
+      }
+    },
+    "summary": {
+      "utilization": "使用率 {{percentage}}%",
+      "currentDue": "本期應繳",
+      "nextEstimate": "下期預估",
+      "billingCycle": "帳單週期",
+      "dueDate": "繳款日",
+      "dueLabel": {
+        "overdue": "逾期 {{count}} 天",
+        "dueToday": "今日到期",
+        "dueTomorrow": "明日到期",
+        "days": "還有 {{count}} 天"
+      }
+    }
+  },
+  "wallets": {
+    "sectionTitle": "錢包",
+    "form": {
+      "title": {
+        "create": "新增錢包",
+        "edit": "編輯錢包"
+      },
+      "labels": {
+        "name": "錢包名稱",
+        "linkedCard": "連結信用卡（選填）",
+        "note": "備註"
+      },
+      "placeholders": {
+        "name": "例如：日常錢包",
+        "linkedCardNone": "不連結信用卡",
+        "note": "為此錢包新增備註"
+      },
+      "checkbox": "設為預設錢包",
+      "actions": {
+        "create": "新增錢包",
+        "update": "更新錢包",
+        "cancel": "取消"
+      },
+      "messages": {
+        "missingUser": "找不到使用者，請先登入以管理錢包。",
+        "createSuccess": "已新增錢包！",
+        "updateSuccess": "已更新錢包！",
+        "saveError": "儲存錢包時發生錯誤。"
+      }
+    },
+    "list": {
+      "title": "錢包",
+      "empty": "目前沒有錢包，立即建立一個吧。",
+      "noLinkedCard": "未連結信用卡",
+      "defaultBadge": "預設",
+      "actions": {
+        "edit": "編輯",
+        "delete": "刪除"
+      },
+      "messages": {
+        "confirmDelete": "確定要刪除這個錢包嗎？",
+        "deleteSuccess": "已刪除錢包",
+        "deleteError": "刪除錢包時發生錯誤。"
+      }
+    }
+  },
+  "transactions": {
+    "form": {
+      "title": "新增交易",
+      "fields": {
+        "affectCurrentBill": "計入本期帳單",
+        "date": "日期",
+        "amount": "金額",
+        "merchant": {
+          "label": "商店",
+          "placeholder": "店家名稱"
+        },
+        "category": {
+          "label": "分類",
+          "placeholder": "餐飲、旅行等"
+        },
+        "sourceType": {
+          "label": "來源類型",
+          "options": {
+            "card": "信用卡",
+            "wallet": "錢包"
+          }
+        },
+        "source": {
+          "label": {
+            "card": "信用卡",
+            "wallet": "錢包"
+          },
+          "placeholder": "選擇{{type}}"
+        },
+        "note": {
+          "label": "備註",
+          "placeholder": "可填寫備註"
+        }
+      },
+      "actions": {
+        "submit": "儲存交易"
+      },
+      "messages": {
+        "missingUser": "請先登入後再新增交易。",
+        "missingSource": "請先選擇來源再儲存交易。",
+        "invalidAmount": "金額必須為數字。",
+        "createSuccess": "交易已紀錄！",
+        "saveError": "儲存交易失敗。"
+      }
+    },
+    "list": {
+      "title": "近期交易",
+      "empty": "尚未紀錄任何交易。",
+      "source": {
+        "card": "信用卡",
+        "wallet": "錢包",
+        "unknown": "未知來源"
+      },
+      "flags": {
+        "affectsBill": "計入本期帳單",
+        "excluded": "不計入帳單"
+      }
+    }
+  },
+  "notifications": {
+    "center": {
+      "title": "通知",
+      "subtitle": "掌握繳款提醒與使用率通知。未讀：{{count}}",
+      "signInPrompt": "登入即可查看提醒。",
+      "filters": {
+        "all": "全部類型"
+      },
+      "actions": {
+        "refresh": "重新整理",
+        "markAllRead": "全部標示為已讀",
+        "loadMore": "載入更多"
+      },
+      "empty": "目前沒有通知，收到提醒後會顯示在這裡。",
+      "loading": "載入中…"
+    },
+    "types": {
+      "due-reminder": "繳款提醒",
+      "utilization-80": "使用率 ≥80%",
+      "utilization-95": "使用率 ≥95%",
+      "test-push": "推播測試",
+      "test-email": "Email 測試"
+    },
+    "channels": {
+      "push": "推播",
+      "email": "電子郵件"
+    },
+    "item": {
+      "read": "已讀",
+      "markRead": "標示已讀"
+    },
+    "settings": {
+      "title": "通知設定",
+      "subtitle": "觸發測試通知以驗證裝置 Token 與 Email 設定。",
+      "buttons": {
+        "sendPush": "發送推播測試",
+        "sendEmail": "發送 Email 測試"
+      },
+      "sending": {
+        "push": "正在發送推播…",
+        "email": "正在發送 Email…"
+      },
+      "messages": {
+        "missingUser": "登入後即可發送測試通知。",
+        "pushSuccess": "推播已發送至 {{count}} 台裝置。",
+        "emailSuccess": "測試 Email 已透過 Resend 寄出。",
+        "noAccess": "登入後即可使用通知工具。"
+      }
+    }
+  },
+  "general": {
+    "actions": {
+      "edit": "編輯",
+      "delete": "刪除",
+      "cancel": "取消"
+    }
+  }
+}

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
+import LanguageSwitcher from './components/LanguageSwitcher'
 import { NotificationCenter } from './components/NotificationCenter'
 import { SettingsNotifications } from './components/SettingsNotifications'
 import TransactionForm from './components/TransactionForm'
@@ -13,6 +15,7 @@ import { auth } from './firebase'
 import type { Card, Wallet } from './models/types'
 
 export default function App() {
+  const { t } = useTranslation()
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
@@ -51,18 +54,20 @@ export default function App() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 p-4 text-slate-100">
       <header className="rounded border border-slate-800 bg-slate-900/40 p-6 shadow">
-        <h1 className="text-3xl font-bold">Finance App</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Manage cards, wallets, transactions, and reminders with Firestore-backed, real-time
-          updates.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">{t('app.title')}</h1>
+            <p className="mt-2 text-sm text-slate-400">{t('app.subtitle')}</p>
+          </div>
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <Dashboard userId={userId} />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
-          <h2 className="text-xl font-semibold">Cards</h2>
+          <h2 className="text-xl font-semibold">{t('cards.sectionTitle')}</h2>
           <CardForm
             userId={userId}
             existingCard={editingCard}
@@ -73,13 +78,13 @@ export default function App() {
 
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Wallets</h2>
+            <h2 className="text-xl font-semibold">{t('wallets.sectionTitle')}</h2>
             <button
               type="button"
               onClick={handleAddWallet}
               className="rounded bg-emerald-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-400"
             >
-              Add Wallet
+              {t('wallets.form.actions.create')}
             </button>
           </div>
           {isWalletFormOpen && (
