@@ -1,4 +1,45 @@
-const CACHE_NAME = 'finance-app-cache-v1';
+﻿const fs = require('fs')
+const path = require('path')
+const dotenv = require('dotenv')
+
+const envFiles = [path.resolve(__dirname, '../.env.local'), path.resolve(__dirname, '../.env')]
+
+envFiles.forEach(file => {
+  if (fs.existsSync(file)) {
+    dotenv.config({ path: file, override: false })
+  }
+})
+
+const requiredKeys = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+]
+
+function ensureConfig() {
+  const missing = requiredKeys.filter(key => !process.env[key])
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required Firebase environment variables: ${missing.join(', ')}. ` +
+        'Please define them in .env / .env.local or the deployment environment.',
+    )
+  }
+
+  return {
+    apiKey: process.env.VITE_FIREBASE_API_KEY,
+    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.VITE_FIREBASE_APP_ID,
+  }
+}
+
+function createServiceWorker(config) {
+  return `const CACHE_NAME = 'finance-app-cache-v1';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.webmanifest', '/vite.svg'];
 
 self.addEventListener('install', event => {
@@ -47,7 +88,7 @@ try {
   importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-  firebase.initializeApp({"apiKey":"AIzaSyBcTfagYzYGD3ZS6EkxuyZ2SdlVSUFGIJc","authDomain":"finance-app-483fc.firebaseapp.com","projectId":"finance-app-483fc","storageBucket":"finance-app-483fc.firebasestorage.app","messagingSenderId":"467300077631","appId":"1:467300077631:web:66a3f4b384a70b4c83e88a"});
+  firebase.initializeApp(${JSON.stringify(config)});
 
   const messaging = firebase.messaging();
 
@@ -89,3 +130,15 @@ self.addEventListener('notificationclick', event => {
     }),
   );
 });
+`
+}
+
+function main() {
+  const config = ensureConfig()
+  const swContent = createServiceWorker(config)
+  const outputPath = path.resolve(__dirname, '../public/firebase-messaging-sw.js')
+  fs.writeFileSync(outputPath, swContent, 'utf8')
+  console.log(`Generated firebase-messaging-sw.js at ${outputPath}`)
+}
+
+main()
