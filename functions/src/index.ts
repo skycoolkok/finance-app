@@ -1,8 +1,53 @@
-﻿import * as admin from 'firebase-admin'
-import * as functions from 'firebase-functions'
-import { Resend } from 'resend'
+import 'dotenv/config'
+
+import * as admin from 'firebase-admin'
+import { logger } from 'firebase-functions'
+import { HttpsError, onCall } from 'firebase-functions/v2/https'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
+
+import {
+  NotificationEngine,
+  fetchUserLocale,
+  logNotificationRecord,
+  type ReminderEvent,
+} from './notif/engine'
+import { getAppBaseUrl } from './notif/env'
+import { sendBudgetAlert } from './notif/budgetEngine'
+import { sanitizeForKey } from './notif/utils'
+import {
+  TEST_EMAIL_SUBJECT,
+  buildTestEmailHtml,
+  buildTestEmailText,
+  sendMail,
+} from './mailer'
+import {
+  RESEND_API_KEY,
+  MissingResendApiKeyError,
+  getResendClientOrNull,
+} from './resendClient'
+import { resolveLocaleTag } from './templates'
+import { sendTestEmailGet } from './testMail'
 
 const REGION = 'asia-east1'
+const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
+
+const HTTPS_OPTIONS = {
+  region: REGION,
+  cpu: 1,
+  memory: '256MiB' as const,
+  timeoutSeconds: 60,
+  secrets: [RESEND_API_KEY],
+}
+
+const SCHEDULE_OPTIONS = {
+  region: REGION,
+  schedule: 'every 6 hours',
+  timeZone: 'Asia/Taipei',
+  cpu: 1,
+  memory: '256MiB' as const,
+  timeoutSeconds: 60,
+  secrets: [RESEND_API_KEY],
+}
 
 if (!admin.apps.length) {
   admin.initializeApp()
@@ -10,33 +55,26 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore()
 const messaging = admin.messaging()
+const APP_BASE_URL = getAppBaseUrl()
 
-const resendClient = (() => {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    functions.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.')
-    return null
-  }
-  return new Resend(apiKey)
-})()
-
-const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
-
-export const registerToken = functions.region(REGION).https.onCall(async (data, context) => {
-  const token = typeof data?.token === 'string' ? data.token.trim() : ''
+export const registerToken = onCall<
+  { token?: string; userId?: string; platform?: string } | null
+>(HTTPS_OPTIONS, async request => {
+  const token = typeof request.data?.token === 'string' ? request.data.token.trim() : ''
   if (!token) {
-    throw new functions.https.HttpsError('invalid-argument', 'token is required')
+    throw new HttpsError('invalid-argument', 'token is required')
   }
 
-  const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '')
+  const userId =
+    request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
   if (!userId) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       'failed-precondition',
       'Authentication is required to register a token',
     )
   }
 
-  const platform = typeof data?.platform === 'string' ? data.platform : 'unknown'
+  const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown'
   const sanitizedId = sanitizeForKey(`${userId}:${token}`)
   const tokenRef = firestore.collection('user_tokens').doc(sanitizedId)
 
@@ -65,319 +103,171 @@ export const registerToken = functions.region(REGION).https.onCall(async (data, 
   return { token }
 })
 
-export const sendTestPush = functions.region(REGION).https.onCall(async (data, context) => {
-  const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '')
-  if (!userId) {
-    throw new functions.https.HttpsError(
-      'failed-precondition',
-      'Authentication is required to send a test push notification',
-    )
-  }
+export const sendTestPush = onCall<{ userId?: string } | null>(
+  HTTPS_OPTIONS,
+  async request => {
+    const userId =
+      request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
+    if (!userId) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Authentication is required to send a test push notification',
+      )
+    }
 
-  const tokens = await fetchUserTokens(userId)
-  if (tokens.length === 0) {
-    throw new functions.https.HttpsError(
-      'failed-precondition',
-      'No device tokens registered for this user',
-    )
-  }
+    const tokens = await fetchUserTokens(userId)
+    if (tokens.length === 0) {
+      throw new HttpsError(
+        'failed-precondition',
+        'No device tokens registered for this user',
+      )
+    }
 
-  const response = await messaging.sendEachForMulticast({
-    tokens,
-    notification: {
-      title: 'Finance App',
-      body: 'Test push notification from Finance App.',
-    },
-    data: {
+    const locale = await fetchUserLocale({ firestore, userId })
+    const response = await messaging.sendEachForMulticast({
+      tokens,
+      notification: {
+        title: 'Finance App',
+        body: 'Test push notification from Finance App.',
+      },
+      data: {
+        type: 'test-push',
+        url: APP_BASE_URL,
+        locale,
+      },
+    })
+
+    await logNotificationRecord(firestore, {
+      userId,
       type: 'test-push',
-    },
-  })
+      message: 'Test push notification dispatched.',
+      channel: 'push',
+      eventKey: 'test-push',
+      locale,
+    })
 
-  await logNotification({
-    userId,
-    type: 'test-push',
-    message: 'Test push notification dispatched.',
-    channel: 'push',
-    eventKey: 'test-push',
-  })
+    return { successCount: response.successCount, failureCount: response.failureCount }
+  },
+)
 
-  return { successCount: response.successCount, failureCount: response.failureCount }
-})
+export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
+  HTTPS_OPTIONS,
+  async request => {
+    const userId =
+      request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
+    if (!userId) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Authentication is required to send a test email',
+      )
+    }
 
-export const sendTestEmail = functions.region(REGION).https.onCall(async (data, context) => {
-  if (!resendClient) {
-    throw new functions.https.HttpsError('failed-precondition', 'RESEND_API_KEY is not configured')
-  }
+    const userRecord = await admin
+      .auth()
+      .getUser(userId)
+      .catch(() => null)
+    const email =
+      userRecord?.email ??
+      (typeof request.data?.email === 'string' ? request.data.email.trim() : '')
 
-  const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '')
+    if (!email) {
+      throw new HttpsError(
+        'failed-precondition',
+        'No email address available for this user',
+      )
+    }
+
+    const locale = await fetchUserLocale({ firestore, userId })
+
+    try {
+      await sendMail({
+        to: email,
+        subject: TEST_EMAIL_SUBJECT,
+        html: buildTestEmailHtml(APP_BASE_URL),
+        text: buildTestEmailText(APP_BASE_URL),
+      })
+    } catch (error) {
+      if (error instanceof MissingResendApiKeyError) {
+        throw new HttpsError('failed-precondition', 'RESEND_API_KEY is not configured')
+      }
+
+      logger.error('Failed to send test email.', normalizeError(error), {
+        userId,
+        email,
+      })
+      throw new HttpsError('internal', 'Unable to send test email')
+    }
+
+    await logNotificationRecord(firestore, {
+      userId,
+      type: 'test-email',
+      message: 'Test email notification dispatched.',
+      channel: 'email',
+      eventKey: 'test-email',
+      locale,
+    })
+
+    return { delivered: true }
+  },
+)
+
+export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, async request => {
+  const userId = request.auth?.uid
   if (!userId) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       'failed-precondition',
-      'Authentication is required to send a test email',
+      'Authentication is required to update locale',
     )
   }
 
-  const userRecord = await admin
-    .auth()
-    .getUser(userId)
-    .catch(() => null)
-  const email = userRecord?.email || (typeof data?.email === 'string' ? data.email : '')
-  if (!email) {
-    throw new functions.https.HttpsError(
-      'failed-precondition',
-      'No email address available for this user',
-    )
+  const localeInput = typeof request.data?.locale === 'string' ? request.data.locale.trim() : ''
+  if (!localeInput) {
+    throw new HttpsError('invalid-argument', 'locale is required')
   }
 
-  await resendClient.emails.send({
-    from: 'Finance App <notifications@finance-app.dev>',
-    to: email,
-    subject: 'Finance App Test Email',
-    html: '<h1>Finance App</h1><p>This is a test email from your notification system.</p>',
-  })
+  const normalized = resolveLocaleTag(localeInput)
+  await firestore
+    .collection('users')
+    .doc(userId)
+    .set(
+      {
+        locale: normalized,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    )
 
-  await logNotification({
-    userId,
-    type: 'test-email',
-    message: `Test email sent to ${email}.`,
-    channel: 'email',
-    eventKey: 'test-email',
-  })
-
-  return { delivered: true }
+  return { locale: normalized }
 })
 
-export const scheduledReminders = functions
-  .region(REGION)
-  .pubsub.schedule('every 6 hours')
-  .onRun(async () => {
-    const cardsSnapshot = await firestore.collection('cards').get()
-    if (cardsSnapshot.empty) {
-      functions.logger.info('No cards found for reminder processing.')
-      return null
-    }
+export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
+  const resendClient = await getResendClientOrNull()
+  if (!resendClient) {
+    logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.')
+  }
 
-    const now = new Date()
-    const dueThresholds = new Set([7, 3, 1, 0])
-
-    const tokenCache = new Map<string, string[]>()
-    const emailCache = new Map<string, string | null>()
-
-    for (const cardDoc of cardsSnapshot.docs) {
-      const card = cardDoc.data() as FirestoreCard
-      const userId = card.userId
-      if (!userId || !card.statementDay || !card.dueDay || typeof card.limitAmount !== 'number') {
-        continue
-      }
-
-      const cycle = computeCycle(now, card.statementDay)
-      const dueDate = computeDueDate(cycle.end, card.dueDay)
-      const daysToDue = calculateDaysLeft(now, dueDate)
-
-      const currentDue = await sumTransactions({
-        userId,
-        cardId: cardDoc.id,
-        start: cycle.start,
-        end: cycle.end,
-      })
-
-      const utilization = card.limitAmount > 0 ? currentDue / card.limitAmount : 0
-      const cardLabel = card.alias || card.issuer || `Card ${card.last4 ?? ''}`
-
-      const reminders: ReminderEvent[] = []
-
-      if (dueThresholds.has(daysToDue) || daysToDue < 0) {
-        const message = formatDueMessage(cardLabel, daysToDue, dueDate, currentDue)
-        reminders.push({
-          userId,
-          cardId: cardDoc.id,
-          cardLabel,
-          eventKey: `card:${cardDoc.id}:due:${daysToDue}`,
-          type: 'due-reminder',
-          message,
-          pushTitle: 'Card payment reminder',
-          emailSubject: 'Card payment reminder',
-        })
-      }
-
-      if (utilization >= 0.95) {
-        const message = `${cardLabel} has reached ${Math.round(utilization * 100)}% of its credit limit.`
-        reminders.push({
-          userId,
-          cardId: cardDoc.id,
-          cardLabel,
-          eventKey: `card:${cardDoc.id}:utilization:95`,
-          type: 'utilization-95',
-          message,
-          pushTitle: 'High utilization alert',
-          emailSubject: 'High utilization alert',
-        })
-      } else if (utilization >= 0.8) {
-        const message = `${cardLabel} has used ${Math.round(utilization * 100)}% of its credit limit.`
-        reminders.push({
-          userId,
-          cardId: cardDoc.id,
-          cardLabel,
-          eventKey: `card:${cardDoc.id}:utilization:80`,
-          type: 'utilization-80',
-          message,
-          pushTitle: 'Utilization warning',
-          emailSubject: 'Utilization warning',
-        })
-      }
-
-      for (const reminder of reminders) {
-        await deliverReminder({ reminder, tokenCache, emailCache })
-      }
-    }
-
-    return null
+  const notificationEngine = new NotificationEngine({
+    firestore,
+    messaging,
+    resendClient,
+    notificationWindowMs: NOTIFICATION_WINDOW_MS,
+    baseUrl: APP_BASE_URL,
+    logger,
   })
 
-type FirestoreCard = {
-  alias?: string
-  issuer: string
-  last4?: string
-  statementDay: number
-  dueDay: number
-  limitAmount: number
-  userId: string
-}
+  await processCardReminders(notificationEngine)
+  await processBudgetAlerts(notificationEngine)
+})
 
-type ReminderEvent = {
-  userId: string
-  cardId: string
-  cardLabel: string
-  eventKey: string
-  type: string
-  message: string
-  pushTitle: string
-  emailSubject: string
-}
+export { sendTestEmailGet }
 
-type ReminderDeliveryContext = {
-  reminder: ReminderEvent
-  tokenCache: Map<string, string[]>
-  emailCache: Map<string, string | null>
-}
+export * from './new-apis'
 
-async function deliverReminder({ reminder, tokenCache, emailCache }: ReminderDeliveryContext) {
-  const { userId, eventKey, message, pushTitle, emailSubject, type } = reminder
-
-  const shouldSendPush = !(await wasEventSentRecently(userId, eventKey, 'push'))
-  if (shouldSendPush) {
-    const tokens = await fetchUserTokens(userId, tokenCache)
-    if (tokens.length > 0) {
-      await messaging.sendEachForMulticast({
-        tokens,
-        notification: {
-          title: pushTitle,
-          body: message,
-        },
-        data: {
-          type,
-          cardId: reminder.cardId,
-          eventKey,
-        },
-      })
-
-      await logNotification({
-        userId,
-        type,
-        message,
-        channel: 'push',
-        eventKey,
-      })
-      await rememberNotificationKey(userId, eventKey, 'push')
-    }
-  }
-
-  if (resendClient) {
-    const shouldSendEmail = !(await wasEventSentRecently(userId, eventKey, 'email'))
-    if (shouldSendEmail) {
-      const email = await lookupUserEmail(userId, emailCache)
-      if (email) {
-        await resendClient.emails.send({
-          from: 'Finance App <notifications@finance-app.dev>',
-          to: email,
-          subject: emailSubject,
-          html: `<h2>${emailSubject}</h2><p>${message}</p>`,
-        })
-
-        await logNotification({
-          userId,
-          type,
-          message,
-          channel: 'email',
-          eventKey,
-        })
-        await rememberNotificationKey(userId, eventKey, 'email')
-      }
-    }
-  }
-}
-
-async function fetchUserTokens(userId: string, cache?: Map<string, string[]>) {
-  if (cache?.has(userId)) {
-    return cache.get(userId) ?? []
-  }
-
+async function fetchUserTokens(userId: string) {
   const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get()
-  const tokens = snapshot.docs
+  return snapshot.docs
     .map(docSnapshot => docSnapshot.data().token as string | undefined)
     .filter((token): token is string => Boolean(token))
-
-  cache?.set(userId, tokens)
-
-  return tokens
-}
-
-async function lookupUserEmail(userId: string, cache: Map<string, string | null>) {
-  if (cache.has(userId)) {
-    return cache.get(userId) ?? null
-  }
-
-  const userRecord = await admin
-    .auth()
-    .getUser(userId)
-    .catch(() => null)
-  const email = userRecord?.email ?? null
-  cache.set(userId, email)
-  return email
-}
-
-async function wasEventSentRecently(userId: string, eventKey: string, channel: 'push' | 'email') {
-  const docRef = notificationKeyRef(userId, eventKey, channel)
-  const snapshot = await docRef.get()
-  if (!snapshot.exists) {
-    return false
-  }
-
-  const sentAt = snapshot.get('sentAt') as admin.firestore.Timestamp | undefined
-  if (!sentAt) {
-    return false
-  }
-
-  return sentAt.toMillis() >= Date.now() - NOTIFICATION_WINDOW_MS
-}
-
-async function rememberNotificationKey(
-  userId: string,
-  eventKey: string,
-  channel: 'push' | 'email',
-) {
-  const docRef = notificationKeyRef(userId, eventKey, channel)
-  await docRef.set({
-    userId,
-    eventKey,
-    channel,
-    sentAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
-}
-
-function notificationKeyRef(userId: string, eventKey: string, channel: 'push' | 'email') {
-  const docId = sanitizeForKey(`${userId}:${channel}:${eventKey}`)
-  return firestore.collection('notif_keys').doc(docId)
 }
 
 async function sumTransactions({
@@ -407,30 +297,6 @@ async function sumTransactions({
     const amount = docSnapshot.data().amount as number | undefined
     return total + (typeof amount === 'number' ? amount : 0)
   }, 0)
-}
-
-async function logNotification({
-  userId,
-  type,
-  message,
-  channel,
-  eventKey,
-}: {
-  userId: string
-  type: string
-  message: string
-  channel: 'push' | 'email'
-  eventKey: string
-}) {
-  await firestore.collection('notifications').add({
-    userId,
-    type,
-    message,
-    channel,
-    eventKey,
-    read: false,
-    sentAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
 }
 
 function computeCycle(todayInput: Date, statementDay: number) {
@@ -470,26 +336,199 @@ function toISODate(date: Date) {
   return normalizeDate(date).toISOString().split('T')[0]
 }
 
-function formatDueMessage(cardLabel: string, daysToDue: number, dueDate: Date, currentDue: number) {
-  const dueDisplay = dueDate.toDateString()
-  const amountDisplay = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(currentDue)
+async function processCardReminders(notificationEngine: NotificationEngine): Promise<void> {
+  const cardsSnapshot = await firestore.collection('cards').get()
+  if (cardsSnapshot.empty) {
+    logger.info('No cards found for reminder processing.')
+    return
+  }
 
-  if (daysToDue < 0) {
-    return `${cardLabel} payment was due on ${dueDisplay}. Outstanding balance: ${amountDisplay}.`
+  const now = new Date()
+  const dueThresholds = new Set([7, 3, 1, 0])
+
+  for (const cardDoc of cardsSnapshot.docs) {
+    const card = cardDoc.data() as {
+      userId?: string
+      statementDay?: number
+      dueDay?: number
+      limitAmount?: number
+      alias?: string
+      issuer?: string
+      last4?: string
+    }
+
+    const userId = typeof card.userId === 'string' ? card.userId : undefined
+    if (!userId || typeof card.statementDay !== 'number' || typeof card.dueDay !== 'number') {
+      continue
+    }
+
+    if (typeof card.limitAmount !== 'number') {
+      continue
+    }
+
+    const cycle = computeCycle(now, card.statementDay)
+    const dueDate = computeDueDate(cycle.end, card.dueDay)
+    const daysToDue = calculateDaysLeft(now, dueDate)
+    const currentDue = await sumTransactions({
+      userId,
+      cardId: cardDoc.id,
+      start: cycle.start,
+      end: cycle.end,
+    })
+    const utilization = card.limitAmount > 0 ? currentDue / card.limitAmount : 0
+    const cardLabel = card.alias || card.issuer || `Card ${card.last4 ?? ''}`
+    const reminders: ReminderEvent[] = []
+
+    if (dueThresholds.has(daysToDue) || daysToDue < 0) {
+      reminders.push({
+        userId,
+        cardId: cardDoc.id,
+        eventKey: `card:${cardDoc.id}:due:${daysToDue}`,
+        type: 'due-reminder',
+        template: {
+          kind: 'due',
+          data: {
+            cardLabel,
+            daysToDue,
+            dueDate,
+            amount: currentDue,
+          },
+        },
+      })
+    }
+
+    if (utilization >= 0.95) {
+      reminders.push({
+        userId,
+        cardId: cardDoc.id,
+        eventKey: `card:${cardDoc.id}:utilization:95`,
+        type: 'utilization-95',
+        template: {
+          kind: 'utilization',
+          data: {
+            cardLabel,
+            utilization,
+            threshold: 95,
+            limit: card.limitAmount,
+            amount: currentDue,
+          },
+        },
+      })
+    } else if (utilization >= 0.8) {
+      reminders.push({
+        userId,
+        cardId: cardDoc.id,
+        eventKey: `card:${cardDoc.id}:utilization:80`,
+        type: 'utilization-80',
+        template: {
+          kind: 'utilization',
+          data: {
+            cardLabel,
+            utilization,
+            threshold: 80,
+            limit: card.limitAmount,
+            amount: currentDue,
+          },
+        },
+      })
+    }
+
+    for (const reminder of reminders) {
+      await notificationEngine.deliverReminder(reminder)
+    }
   }
-  if (daysToDue === 0) {
-    return `${cardLabel} payment is due today (${dueDisplay}). Balance: ${amountDisplay}.`
-  }
-  if (daysToDue === 1) {
-    return `${cardLabel} payment is due tomorrow (${dueDisplay}). Balance: ${amountDisplay}.`
-  }
-  return `${cardLabel} payment is due in ${daysToDue} days on ${dueDisplay}. Balance: ${amountDisplay}.`
 }
 
-function sanitizeForKey(value: string) {
-  return value.replace(/[^a-zA-Z0-9_-]/g, '_')
+async function processBudgetAlerts(notificationEngine: NotificationEngine): Promise<void> {
+  const budgetsSnapshot = await firestore.collection('budgets').get()
+  if (budgetsSnapshot.empty) {
+    logger.info('No budgets found for alert processing.')
+    return
+  }
+
+  for (const budgetDoc of budgetsSnapshot.docs) {
+    const data = budgetDoc.data() as Record<string, unknown>
+    const userId =
+      typeof data.userId === 'string' && data.userId.trim().length > 0
+        ? data.userId.trim()
+        : null
+    if (!userId) {
+      continue
+    }
+
+    const limit = toPositiveNumber(
+      data.limitAmount ?? data.limit ?? data.amountLimit ?? data.total ?? null,
+    )
+    const spent = toPositiveNumber(
+      data.spent ?? data.spentAmount ?? data.current ?? data.currentSpend ?? null,
+    )
+    const thresholds = normalizeThresholds(data.thresholds ?? data.alertThresholds ?? null)
+    const budgetLabel = determineBudgetLabel(data, budgetDoc.id)
+
+    if (limit <= 0 && spent <= 0) {
+      continue
+    }
+
+    const usagePercentage = limit > 0 ? (spent / limit) * 100 : Number.POSITIVE_INFINITY
+
+    for (const threshold of thresholds) {
+      if (usagePercentage >= threshold) {
+        await sendBudgetAlert(notificationEngine, {
+          userId,
+          budgetId: budgetDoc.id,
+          budgetLabel,
+          spent,
+          limit,
+          threshold,
+        })
+      }
+    }
+  }
 }
-export * from './new-apis'
+
+function toPositiveNumber(value: unknown): number {
+  const num = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(num) && num > 0 ? num : 0
+}
+
+function normalizeThresholds(value: unknown): number[] {
+  const raw = Array.isArray(value) ? value : value != null ? [value] : [80, 100]
+  const thresholds = raw
+    .map(entry => {
+      const numeric = typeof entry === 'number' ? entry : Number(entry)
+      return Number.isFinite(numeric) ? numeric : null
+    })
+    .filter((entry): entry is number => entry !== null)
+    .map(entry => Math.max(0, entry))
+
+  if (thresholds.length === 0) {
+    return [80, 100]
+  }
+
+  return Array.from(new Set(thresholds)).sort((a, b) => a - b)
+}
+
+function determineBudgetLabel(data: Record<string, unknown>, fallbackId: string): string {
+  const labelCandidates = [
+    data.budgetLabel,
+    data.label,
+    data.name,
+    data.title,
+    `Budget ${fallbackId}`,
+  ]
+
+  for (const candidate of labelCandidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+
+  return `Budget ${fallbackId}`
+}
+
+function normalizeError(error: unknown): { message: string } {
+  if (error instanceof Error) {
+    return { message: error.message }
+  }
+  return { message: 'Unknown error' }
+}

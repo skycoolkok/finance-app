@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { httpsCallable } from 'firebase/functions'
-import { functions } from '../firebase'
+
+import { auth, functions } from '../firebase'
+import { setUserLocale } from '../functions'
+import { normalizeLanguageTag } from '../lib/language'
 
 type SettingsNotificationsProps = {
   userId: string | null
 }
 
 export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState<'push' | 'email' | null>(null)
+  const [isSyncingLocale, setIsSyncingLocale] = useState(false)
 
-  const disabled = !userId || isSending !== null
+  const disabled = !userId || isSending !== null || isSyncingLocale
 
   const handleSend = async (mode: 'push' | 'email') => {
     if (!userId) {
@@ -49,6 +53,32 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
       setError(sendError instanceof Error ? sendError.message : String(sendError))
     } finally {
       setIsSending(null)
+    }
+  }
+
+  const handleSyncLocale = async () => {
+    if (!userId) {
+      setError(t('notifications.settings.messages.missingUser'))
+      return
+    }
+
+    if (!auth.currentUser) {
+      setError(t('notifications.settings.messages.localeAuthRequired'))
+      return
+    }
+
+    const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
+    setIsSyncingLocale(true)
+    setError(null)
+    setStatus(null)
+
+    try {
+      await setUserLocale({ locale })
+      setStatus(t('notifications.settings.messages.localeSuccess', { locale }))
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : String(syncError))
+    } finally {
+      setIsSyncingLocale(false)
     }
   }
 
@@ -97,6 +127,18 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
             ? t('notifications.settings.sending.email')
             : t('notifications.settings.buttons.sendEmail')}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            void handleSyncLocale()
+          }}
+          disabled={disabled}
+          className="w-full rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:bg-slate-700/40"
+        >
+          {isSyncingLocale
+            ? t('notifications.settings.sending.locale')
+            : t('notifications.settings.buttons.syncLocale')}
+        </button>
       </div>
 
       {!userId && (
@@ -107,3 +149,4 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
 }
 
 export default SettingsNotifications
+

@@ -1,250 +1,254 @@
 {
   "language": {
-    "label": "語言",
+    "label": "Language",
     "en": "English",
     "zhTW": "繁體中文"
   },
   "app": {
-    "title": "理財應用",
-    "subtitle": "使用 Firestore 即時同步，管理卡片、錢包、交易與通知。",
+    "title": "Finance App",
+    "subtitle": "Manage cards, wallets, transactions, and reminders with Firestore-backed, real-time updates.",
     "sections": {
-      "cards": "信用卡",
-      "wallets": "錢包",
-      "transactions": "交易",
-      "notifications": "通知"
+      "cards": "Cards",
+      "wallets": "Wallets",
+      "transactions": "Transactions",
+      "notifications": "Notifications"
     },
     "actions": {
-      "addWallet": "新增錢包",
-      "addCard": "新增信用卡"
+      "addWallet": "Add Wallet",
+      "addCard": "Add Card"
     },
     "hero": {
-      "title": "理財 App 您好",
-      "subtitle": "歡迎使用以 React、Vite 與 Tailwind CSS 打造的漸進式網頁體驗。"
+      "title": "Hello Finance App",
+      "subtitle": "Welcome to your progressive web experience built with React, Vite, and Tailwind CSS."
     }
   },
   "dashboard": {
-    "title": "帳單儀表板",
-    "subtitle": "追蹤帳單週期、使用率與即將到期的付款日。",
-    "totalCurrentDue": "本期應繳總額",
-    "nextEstimate": "下期預估 {{amount}}",
-    "loading": "載入帳單資料中…",
-    "empty": "新增信用卡即可檢視帳單洞察。"
+    "title": "Billing Dashboard",
+    "subtitle": "Track statement cycles, utilization, and upcoming due dates across your cards.",
+    "totalCurrentDue": "Total Current Due",
+    "nextEstimate": "Next Estimate {{amount}}",
+    "loading": "Loading billing data...",
+    "empty": "Add a card to see billing insights."
   },
   "cards": {
-    "sectionTitle": "信用卡",
+    "sectionTitle": "Cards",
     "form": {
       "title": {
-        "create": "新增信用卡",
-        "edit": "編輯信用卡"
+        "create": "Add Card",
+        "edit": "Edit Card"
       },
       "placeholders": {
-        "alias": "卡片名稱",
-        "issuer": "發卡銀行",
-        "last4": "末四碼",
-        "statementDay": "結帳日",
-        "dueDay": "繳款日",
-        "limitAmount": "信用額度"
+        "alias": "Card Name",
+        "issuer": "Bank",
+        "last4": "Last 4 digits",
+        "statementDay": "Statement Day",
+        "dueDay": "Due Day",
+        "limitAmount": "Limit Amount"
       },
       "actions": {
-        "create": "新增信用卡",
-        "update": "更新信用卡",
-        "cancel": "取消"
+        "create": "Add Card",
+        "update": "Update Card",
+        "cancel": "Cancel"
       },
       "messages": {
-        "missingUser": "找不到使用者，請先登入以管理信用卡。",
-        "createSuccess": "已新增信用卡！",
-        "updateSuccess": "已更新信用卡！",
-        "saveError": "儲存信用卡時發生錯誤。"
+        "missingUser": "User not available. Please sign in to manage cards.",
+        "createSuccess": "Card added!",
+        "updateSuccess": "Card updated!",
+        "saveError": "Error saving card"
       }
     },
     "list": {
-      "title": "我的信用卡",
-      "empty": "目前沒有卡片，請先在上方新增。",
-      "limit": "額度",
-      "due": "繳款日",
+      "title": "My Cards",
+      "empty": "No cards yet. Add your first card above.",
+      "limit": "Limit",
+      "due": "Due",
       "actions": {
-        "edit": "編輯",
-        "delete": "刪除"
+        "edit": "Edit",
+        "delete": "Delete"
       },
       "messages": {
-        "deleteSuccess": "已刪除信用卡",
-        "deleteError": "刪除信用卡時發生錯誤。"
+        "deleteSuccess": "Card deleted",
+        "deleteError": "Error deleting card"
       }
     },
     "summary": {
-      "utilization": "使用率 {{percentage}}%",
-      "currentDue": "本期應繳",
-      "nextEstimate": "下期預估",
-      "billingCycle": "帳單週期",
-      "dueDate": "繳款日",
+      "utilization": "Utilization {{percentage}}%",
+      "currentDue": "Current Due",
+      "nextEstimate": "Next Estimate",
+      "billingCycle": "Billing Cycle",
+      "dueDate": "Due Date",
       "dueLabel": {
-        "overdue": "逾期 {{count}} 天",
-        "dueToday": "今日到期",
-        "dueTomorrow": "明日到期",
-        "days": "還有 {{count}} 天"
+        "overdue": "{{count}}d overdue",
+        "dueToday": "Due today",
+        "dueTomorrow": "Due tomorrow",
+        "days": "{{count}} days"
       }
     }
   },
   "wallets": {
-    "sectionTitle": "錢包",
+    "sectionTitle": "Wallets",
     "form": {
       "title": {
-        "create": "新增錢包",
-        "edit": "編輯錢包"
+        "create": "Add Wallet",
+        "edit": "Edit Wallet"
       },
       "labels": {
-        "name": "錢包名稱",
-        "linkedCard": "連結信用卡（選填）",
-        "note": "備註"
+        "name": "Wallet Name",
+        "linkedCard": "Linked Card (optional)",
+        "note": "Note"
       },
       "placeholders": {
-        "name": "例如：日常錢包",
-        "linkedCardNone": "不連結信用卡",
-        "note": "為此錢包新增備註"
+        "name": "e.g. Daily Wallet",
+        "linkedCardNone": "No linked card",
+        "note": "Add notes about this wallet"
       },
-      "checkbox": "設為預設錢包",
+      "checkbox": "Set as default wallet",
       "actions": {
-        "create": "新增錢包",
-        "update": "更新錢包",
-        "cancel": "取消"
+        "create": "Add Wallet",
+        "update": "Update Wallet",
+        "cancel": "Cancel"
       },
       "messages": {
-        "missingUser": "找不到使用者，請先登入以管理錢包。",
-        "createSuccess": "已新增錢包！",
-        "updateSuccess": "已更新錢包！",
-        "saveError": "儲存錢包時發生錯誤。"
+        "missingUser": "User not available. Please sign in to manage wallets.",
+        "createSuccess": "Wallet added!",
+        "updateSuccess": "Wallet updated!",
+        "saveError": "Error saving wallet"
       }
     },
     "list": {
-      "title": "錢包",
-      "empty": "目前沒有錢包，立即建立一個吧。",
-      "noLinkedCard": "未連結信用卡",
-      "defaultBadge": "預設",
+      "title": "Wallets",
+      "empty": "No wallets yet. Create one to get started.",
+      "noLinkedCard": "No linked card",
+      "defaultBadge": "Default",
       "actions": {
-        "edit": "編輯",
-        "delete": "刪除"
+        "edit": "Edit",
+        "delete": "Delete"
       },
       "messages": {
-        "confirmDelete": "確定要刪除這個錢包嗎？",
-        "deleteSuccess": "已刪除錢包",
-        "deleteError": "刪除錢包時發生錯誤。"
+        "confirmDelete": "Delete this wallet?",
+        "deleteSuccess": "Wallet deleted",
+        "deleteError": "Error deleting wallet"
       }
     }
   },
   "transactions": {
     "form": {
-      "title": "新增交易",
+      "title": "Add Transaction",
       "fields": {
-        "affectCurrentBill": "計入本期帳單",
-        "date": "日期",
-        "amount": "金額",
+        "affectCurrentBill": "Affect current bill",
+        "date": "Date",
+        "amount": "Amount",
         "merchant": {
-          "label": "商店",
-          "placeholder": "店家名稱"
+          "label": "Merchant",
+          "placeholder": "Store name"
         },
         "category": {
-          "label": "分類",
-          "placeholder": "餐飲、旅行等"
+          "label": "Category",
+          "placeholder": "Dining, Travel, etc."
         },
         "sourceType": {
-          "label": "來源類型",
+          "label": "Source Type",
           "options": {
-            "card": "信用卡",
-            "wallet": "錢包"
+            "card": "Card",
+            "wallet": "Wallet"
           }
         },
         "source": {
           "label": {
-            "card": "信用卡",
-            "wallet": "錢包"
+            "card": "Card",
+            "wallet": "Wallet"
           },
-          "placeholder": "選擇{{type}}"
+          "placeholder": "Select {{type}}"
         },
         "note": {
-          "label": "備註",
-          "placeholder": "可填寫備註"
+          "label": "Note",
+          "placeholder": "Optional notes"
         }
       },
       "actions": {
-        "submit": "儲存交易"
+        "submit": "Save Transaction"
       },
       "messages": {
-        "missingUser": "請先登入後再新增交易。",
-        "missingSource": "請先選擇來源再儲存交易。",
-        "invalidAmount": "金額必須為數字。",
-        "createSuccess": "交易已紀錄！",
-        "saveError": "儲存交易失敗。"
+        "missingUser": "Please sign in before adding transactions.",
+        "missingSource": "Please select a source before saving the transaction.",
+        "invalidAmount": "Amount must be a number.",
+        "createSuccess": "Transaction recorded!",
+        "saveError": "Failed to save transaction"
       }
     },
     "list": {
-      "title": "近期交易",
-      "empty": "尚未紀錄任何交易。",
+      "title": "Recent Transactions",
+      "empty": "No transactions recorded yet.",
       "source": {
-        "card": "信用卡",
-        "wallet": "錢包",
-        "unknown": "未知來源"
+        "card": "Card",
+        "wallet": "Wallet",
+        "unknown": "Unknown source"
       },
       "flags": {
-        "affectsBill": "計入本期帳單",
-        "excluded": "不計入帳單"
+        "affectsBill": "Counts toward bill",
+        "excluded": "Excluded from bill"
       }
     }
   },
   "notifications": {
     "center": {
-      "title": "通知",
-      "subtitle": "掌握繳款提醒與使用率通知。未讀：{{count}}",
-      "signInPrompt": "登入即可查看提醒。",
+      "title": "Notifications",
+      "subtitle": "Stay on top of your due dates and utilization alerts. Unread: {{count}}",
+      "signInPrompt": "Sign in to view your reminders.",
       "filters": {
-        "all": "全部類型"
+        "all": "All types"
       },
       "actions": {
-        "refresh": "重新整理",
-        "markAllRead": "全部標示為已讀",
-        "loadMore": "載入更多"
+        "refresh": "Refresh",
+        "markAllRead": "Mark all read",
+        "loadMore": "Load more"
       },
-      "empty": "目前沒有通知，收到提醒後會顯示在這裡。",
-      "loading": "載入中…"
+      "empty": "No notifications yet. You'll see reminders here once they arrive.",
+      "loading": "Loading..."
     },
     "types": {
-      "due-reminder": "繳款提醒",
-      "utilization-80": "使用率 ≥80%",
-      "utilization-95": "使用率 ≥95%",
-      "test-push": "推播測試",
-      "test-email": "Email 測試"
+      "due-reminder": "Due Reminder",
+      "utilization-80": "Utilization ≥80%",
+      "utilization-95": "Utilization ≥95%",
+      "test-push": "Test Push",
+      "test-email": "Test Email"
     },
     "channels": {
-      "push": "推播",
-      "email": "電子郵件"
+      "push": "Push",
+      "email": "Email"
     },
     "item": {
-      "read": "已讀",
-      "markRead": "標示已讀"
+      "read": "Read",
+      "markRead": "Mark read"
     },
     "settings": {
-      "title": "通知設定",
-      "subtitle": "觸發測試通知以驗證裝置 Token 與 Email 設定。",
+      "title": "Notification Settings",
+      "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
       "buttons": {
-        "sendPush": "發送推播測試",
-        "sendEmail": "發送 Email 測試"
+        "sendPush": "Send Test Push",
+        "sendEmail": "Send Test Email",
+        "syncLocale": "Sync Language Preference"
       },
       "sending": {
-        "push": "正在發送推播…",
-        "email": "正在發送 Email…"
+        "push": "Sending push...",
+        "email": "Sending email...",
+        "locale": "Syncing language..."
       },
       "messages": {
-        "missingUser": "登入後即可發送測試通知。",
-        "pushSuccess": "推播已發送至 {{count}} 台裝置。",
-        "emailSuccess": "測試 Email 已透過 Resend 寄出。",
-        "noAccess": "登入後即可使用通知工具。"
+        "missingUser": "Sign in to send test notifications.",
+        "pushSuccess": "Push delivered to {{count}} device(s).",
+        "emailSuccess": "Test email sent via Resend.",
+        "localeSuccess": "Language preference updated to {{locale}}.",
+        "localeAuthRequired": "Sign in to sync your language preference.",
+        "noAccess": "Sign in to access notification tools."
       }
     }
   },
   "general": {
     "actions": {
-      "edit": "編輯",
-      "delete": "刪除",
-      "cancel": "取消"
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel"
     }
   }
 }

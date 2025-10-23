@@ -36,36 +36,56 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scheduledReminders = exports.sendTestEmail = exports.sendTestPush = exports.registerToken = void 0;
+exports.sendTestEmailGet = exports.scheduledBudget = exports.setUserLocale = exports.sendTestEmail = exports.sendTestPush = exports.registerToken = void 0;
+require("dotenv/config");
 const admin = __importStar(require("firebase-admin"));
-const functions = __importStar(require("firebase-functions"));
-const resend_1 = require("resend");
+const firebase_functions_1 = require("firebase-functions");
+const https_1 = require("firebase-functions/v2/https");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
+const engine_1 = require("./notif/engine");
+const env_1 = require("./notif/env");
+const budgetEngine_1 = require("./notif/budgetEngine");
+const utils_1 = require("./notif/utils");
+const mailer_1 = require("./mailer");
+const resendClient_1 = require("./resendClient");
+const templates_1 = require("./templates");
+const testMail_1 = require("./testMail");
+Object.defineProperty(exports, "sendTestEmailGet", { enumerable: true, get: function () { return testMail_1.sendTestEmailGet; } });
 const REGION = 'asia-east1';
+const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+const HTTPS_OPTIONS = {
+    region: REGION,
+    cpu: 1,
+    memory: '256MiB',
+    timeoutSeconds: 60,
+    secrets: [resendClient_1.RESEND_API_KEY],
+};
+const SCHEDULE_OPTIONS = {
+    region: REGION,
+    schedule: 'every 6 hours',
+    timeZone: 'Asia/Taipei',
+    cpu: 1,
+    memory: '256MiB',
+    timeoutSeconds: 60,
+    secrets: [resendClient_1.RESEND_API_KEY],
+};
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const firestore = admin.firestore();
 const messaging = admin.messaging();
-const resendClient = (() => {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-        functions.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.');
-        return null;
-    }
-    return new resend_1.Resend(apiKey);
-})();
-const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
-exports.registerToken = functions.region(REGION).https.onCall(async (data, context) => {
-    const token = typeof data?.token === 'string' ? data.token.trim() : '';
+const APP_BASE_URL = (0, env_1.getAppBaseUrl)();
+exports.registerToken = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    const token = typeof request.data?.token === 'string' ? request.data.token.trim() : '';
     if (!token) {
-        throw new functions.https.HttpsError('invalid-argument', 'token is required');
+        throw new https_1.HttpsError('invalid-argument', 'token is required');
     }
-    const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '');
+    const userId = request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '');
     if (!userId) {
-        throw new functions.https.HttpsError('failed-precondition', 'Authentication is required to register a token');
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to register a token');
     }
-    const platform = typeof data?.platform === 'string' ? data.platform : 'unknown';
-    const sanitizedId = sanitizeForKey(`${userId}:${token}`);
+    const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown';
+    const sanitizedId = (0, utils_1.sanitizeForKey)(`${userId}:${token}`);
     const tokenRef = firestore.collection('user_tokens').doc(sanitizedId);
     await firestore.runTransaction(async (tx) => {
         const snapshot = await tx.get(tokenRef);
@@ -90,15 +110,16 @@ exports.registerToken = functions.region(REGION).https.onCall(async (data, conte
     });
     return { token };
 });
-exports.sendTestPush = functions.region(REGION).https.onCall(async (data, context) => {
-    const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '');
+exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    const userId = request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '');
     if (!userId) {
-        throw new functions.https.HttpsError('failed-precondition', 'Authentication is required to send a test push notification');
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to send a test push notification');
     }
     const tokens = await fetchUserTokens(userId);
     if (tokens.length === 0) {
-        throw new functions.https.HttpsError('failed-precondition', 'No device tokens registered for this user');
+        throw new https_1.HttpsError('failed-precondition', 'No device tokens registered for this user');
     }
+    const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
     const response = await messaging.sendEachForMulticast({
         tokens,
         notification: {
@@ -107,222 +128,104 @@ exports.sendTestPush = functions.region(REGION).https.onCall(async (data, contex
         },
         data: {
             type: 'test-push',
+            url: APP_BASE_URL,
+            locale,
         },
     });
-    await logNotification({
+    await (0, engine_1.logNotificationRecord)(firestore, {
         userId,
         type: 'test-push',
         message: 'Test push notification dispatched.',
         channel: 'push',
         eventKey: 'test-push',
+        locale,
     });
     return { successCount: response.successCount, failureCount: response.failureCount };
 });
-exports.sendTestEmail = functions.region(REGION).https.onCall(async (data, context) => {
-    if (!resendClient) {
-        throw new functions.https.HttpsError('failed-precondition', 'RESEND_API_KEY is not configured');
-    }
-    const userId = context.auth?.uid ?? (typeof data?.userId === 'string' ? data.userId : '');
+exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    const userId = request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '');
     if (!userId) {
-        throw new functions.https.HttpsError('failed-precondition', 'Authentication is required to send a test email');
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to send a test email');
     }
     const userRecord = await admin
         .auth()
         .getUser(userId)
         .catch(() => null);
-    const email = userRecord?.email || (typeof data?.email === 'string' ? data.email : '');
+    const email = userRecord?.email ??
+        (typeof request.data?.email === 'string' ? request.data.email.trim() : '');
     if (!email) {
-        throw new functions.https.HttpsError('failed-precondition', 'No email address available for this user');
+        throw new https_1.HttpsError('failed-precondition', 'No email address available for this user');
     }
-    await resendClient.emails.send({
-        from: 'Finance App <notifications@finance-app.dev>',
-        to: email,
-        subject: 'Finance App Test Email',
-        html: '<h1>Finance App</h1><p>This is a test email from your notification system.</p>',
-    });
-    await logNotification({
+    const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
+    try {
+        await (0, mailer_1.sendMail)({
+            to: email,
+            subject: mailer_1.TEST_EMAIL_SUBJECT,
+            html: (0, mailer_1.buildTestEmailHtml)(APP_BASE_URL),
+            text: (0, mailer_1.buildTestEmailText)(APP_BASE_URL),
+        });
+    }
+    catch (error) {
+        if (error instanceof resendClient_1.MissingResendApiKeyError) {
+            throw new https_1.HttpsError('failed-precondition', 'RESEND_API_KEY is not configured');
+        }
+        firebase_functions_1.logger.error('Failed to send test email.', normalizeError(error), {
+            userId,
+            email,
+        });
+        throw new https_1.HttpsError('internal', 'Unable to send test email');
+    }
+    await (0, engine_1.logNotificationRecord)(firestore, {
         userId,
         type: 'test-email',
-        message: `Test email sent to ${email}.`,
+        message: 'Test email notification dispatched.',
         channel: 'email',
         eventKey: 'test-email',
+        locale,
     });
     return { delivered: true };
 });
-exports.scheduledReminders = functions
-    .region(REGION)
-    .pubsub.schedule('every 6 hours')
-    .onRun(async () => {
-    const cardsSnapshot = await firestore.collection('cards').get();
-    if (cardsSnapshot.empty) {
-        functions.logger.info('No cards found for reminder processing.');
-        return null;
+exports.setUserLocale = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) {
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to update locale');
     }
-    const now = new Date();
-    const dueThresholds = new Set([7, 3, 1, 0]);
-    const tokenCache = new Map();
-    const emailCache = new Map();
-    for (const cardDoc of cardsSnapshot.docs) {
-        const card = cardDoc.data();
-        const userId = card.userId;
-        if (!userId || !card.statementDay || !card.dueDay || typeof card.limitAmount !== 'number') {
-            continue;
-        }
-        const cycle = computeCycle(now, card.statementDay);
-        const dueDate = computeDueDate(cycle.end, card.dueDay);
-        const daysToDue = calculateDaysLeft(now, dueDate);
-        const currentDue = await sumTransactions({
-            userId,
-            cardId: cardDoc.id,
-            start: cycle.start,
-            end: cycle.end,
-        });
-        const utilization = card.limitAmount > 0 ? currentDue / card.limitAmount : 0;
-        const cardLabel = card.alias || card.issuer || `Card ${card.last4 ?? ''}`;
-        const reminders = [];
-        if (dueThresholds.has(daysToDue) || daysToDue < 0) {
-            const message = formatDueMessage(cardLabel, daysToDue, dueDate, currentDue);
-            reminders.push({
-                userId,
-                cardId: cardDoc.id,
-                cardLabel,
-                eventKey: `card:${cardDoc.id}:due:${daysToDue}`,
-                type: 'due-reminder',
-                message,
-                pushTitle: 'Card payment reminder',
-                emailSubject: 'Card payment reminder',
-            });
-        }
-        if (utilization >= 0.95) {
-            const message = `${cardLabel} has reached ${Math.round(utilization * 100)}% of its credit limit.`;
-            reminders.push({
-                userId,
-                cardId: cardDoc.id,
-                cardLabel,
-                eventKey: `card:${cardDoc.id}:utilization:95`,
-                type: 'utilization-95',
-                message,
-                pushTitle: 'High utilization alert',
-                emailSubject: 'High utilization alert',
-            });
-        }
-        else if (utilization >= 0.8) {
-            const message = `${cardLabel} has used ${Math.round(utilization * 100)}% of its credit limit.`;
-            reminders.push({
-                userId,
-                cardId: cardDoc.id,
-                cardLabel,
-                eventKey: `card:${cardDoc.id}:utilization:80`,
-                type: 'utilization-80',
-                message,
-                pushTitle: 'Utilization warning',
-                emailSubject: 'Utilization warning',
-            });
-        }
-        for (const reminder of reminders) {
-            await deliverReminder({ reminder, tokenCache, emailCache });
-        }
+    const localeInput = typeof request.data?.locale === 'string' ? request.data.locale.trim() : '';
+    if (!localeInput) {
+        throw new https_1.HttpsError('invalid-argument', 'locale is required');
     }
-    return null;
+    const normalized = (0, templates_1.resolveLocaleTag)(localeInput);
+    await firestore
+        .collection('users')
+        .doc(userId)
+        .set({
+        locale: normalized,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { locale: normalized };
 });
-async function deliverReminder({ reminder, tokenCache, emailCache }) {
-    const { userId, eventKey, message, pushTitle, emailSubject, type } = reminder;
-    const shouldSendPush = !(await wasEventSentRecently(userId, eventKey, 'push'));
-    if (shouldSendPush) {
-        const tokens = await fetchUserTokens(userId, tokenCache);
-        if (tokens.length > 0) {
-            await messaging.sendEachForMulticast({
-                tokens,
-                notification: {
-                    title: pushTitle,
-                    body: message,
-                },
-                data: {
-                    type,
-                    cardId: reminder.cardId,
-                    eventKey,
-                },
-            });
-            await logNotification({
-                userId,
-                type,
-                message,
-                channel: 'push',
-                eventKey,
-            });
-            await rememberNotificationKey(userId, eventKey, 'push');
-        }
+exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async () => {
+    const resendClient = await (0, resendClient_1.getResendClientOrNull)();
+    if (!resendClient) {
+        firebase_functions_1.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.');
     }
-    if (resendClient) {
-        const shouldSendEmail = !(await wasEventSentRecently(userId, eventKey, 'email'));
-        if (shouldSendEmail) {
-            const email = await lookupUserEmail(userId, emailCache);
-            if (email) {
-                await resendClient.emails.send({
-                    from: 'Finance App <notifications@finance-app.dev>',
-                    to: email,
-                    subject: emailSubject,
-                    html: `<h2>${emailSubject}</h2><p>${message}</p>`,
-                });
-                await logNotification({
-                    userId,
-                    type,
-                    message,
-                    channel: 'email',
-                    eventKey,
-                });
-                await rememberNotificationKey(userId, eventKey, 'email');
-            }
-        }
-    }
-}
-async function fetchUserTokens(userId, cache) {
-    if (cache?.has(userId)) {
-        return cache.get(userId) ?? [];
-    }
+    const notificationEngine = new engine_1.NotificationEngine({
+        firestore,
+        messaging,
+        resendClient,
+        notificationWindowMs: NOTIFICATION_WINDOW_MS,
+        baseUrl: APP_BASE_URL,
+        logger: firebase_functions_1.logger,
+    });
+    await processCardReminders(notificationEngine);
+    await processBudgetAlerts(notificationEngine);
+});
+__exportStar(require("./new-apis"), exports);
+async function fetchUserTokens(userId) {
     const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get();
-    const tokens = snapshot.docs
+    return snapshot.docs
         .map(docSnapshot => docSnapshot.data().token)
         .filter((token) => Boolean(token));
-    cache?.set(userId, tokens);
-    return tokens;
-}
-async function lookupUserEmail(userId, cache) {
-    if (cache.has(userId)) {
-        return cache.get(userId) ?? null;
-    }
-    const userRecord = await admin
-        .auth()
-        .getUser(userId)
-        .catch(() => null);
-    const email = userRecord?.email ?? null;
-    cache.set(userId, email);
-    return email;
-}
-async function wasEventSentRecently(userId, eventKey, channel) {
-    const docRef = notificationKeyRef(userId, eventKey, channel);
-    const snapshot = await docRef.get();
-    if (!snapshot.exists) {
-        return false;
-    }
-    const sentAt = snapshot.get('sentAt');
-    if (!sentAt) {
-        return false;
-    }
-    return sentAt.toMillis() >= Date.now() - NOTIFICATION_WINDOW_MS;
-}
-async function rememberNotificationKey(userId, eventKey, channel) {
-    const docRef = notificationKeyRef(userId, eventKey, channel);
-    await docRef.set({
-        userId,
-        eventKey,
-        channel,
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-}
-function notificationKeyRef(userId, eventKey, channel) {
-    const docId = sanitizeForKey(`${userId}:${channel}:${eventKey}`);
-    return firestore.collection('notif_keys').doc(docId);
 }
 async function sumTransactions({ userId, cardId, start, end, }) {
     const startISO = toISODate(start);
@@ -339,17 +242,6 @@ async function sumTransactions({ userId, cardId, start, end, }) {
         const amount = docSnapshot.data().amount;
         return total + (typeof amount === 'number' ? amount : 0);
     }, 0);
-}
-async function logNotification({ userId, type, message, channel, eventKey, }) {
-    await firestore.collection('notifications').add({
-        userId,
-        type,
-        message,
-        channel,
-        eventKey,
-        read: false,
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
 }
 function computeCycle(todayInput, statementDay) {
     const today = normalizeDate(todayInput);
@@ -380,24 +272,165 @@ function normalizeDate(value) {
 function toISODate(date) {
     return normalizeDate(date).toISOString().split('T')[0];
 }
-function formatDueMessage(cardLabel, daysToDue, dueDate, currentDue) {
-    const dueDisplay = dueDate.toDateString();
-    const amountDisplay = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(currentDue);
-    if (daysToDue < 0) {
-        return `${cardLabel} payment was due on ${dueDisplay}. Outstanding balance: ${amountDisplay}.`;
+async function processCardReminders(notificationEngine) {
+    const cardsSnapshot = await firestore.collection('cards').get();
+    if (cardsSnapshot.empty) {
+        firebase_functions_1.logger.info('No cards found for reminder processing.');
+        return;
     }
-    if (daysToDue === 0) {
-        return `${cardLabel} payment is due today (${dueDisplay}). Balance: ${amountDisplay}.`;
+    const now = new Date();
+    const dueThresholds = new Set([7, 3, 1, 0]);
+    for (const cardDoc of cardsSnapshot.docs) {
+        const card = cardDoc.data();
+        const userId = typeof card.userId === 'string' ? card.userId : undefined;
+        if (!userId || typeof card.statementDay !== 'number' || typeof card.dueDay !== 'number') {
+            continue;
+        }
+        if (typeof card.limitAmount !== 'number') {
+            continue;
+        }
+        const cycle = computeCycle(now, card.statementDay);
+        const dueDate = computeDueDate(cycle.end, card.dueDay);
+        const daysToDue = calculateDaysLeft(now, dueDate);
+        const currentDue = await sumTransactions({
+            userId,
+            cardId: cardDoc.id,
+            start: cycle.start,
+            end: cycle.end,
+        });
+        const utilization = card.limitAmount > 0 ? currentDue / card.limitAmount : 0;
+        const cardLabel = card.alias || card.issuer || `Card ${card.last4 ?? ''}`;
+        const reminders = [];
+        if (dueThresholds.has(daysToDue) || daysToDue < 0) {
+            reminders.push({
+                userId,
+                cardId: cardDoc.id,
+                eventKey: `card:${cardDoc.id}:due:${daysToDue}`,
+                type: 'due-reminder',
+                template: {
+                    kind: 'due',
+                    data: {
+                        cardLabel,
+                        daysToDue,
+                        dueDate,
+                        amount: currentDue,
+                    },
+                },
+            });
+        }
+        if (utilization >= 0.95) {
+            reminders.push({
+                userId,
+                cardId: cardDoc.id,
+                eventKey: `card:${cardDoc.id}:utilization:95`,
+                type: 'utilization-95',
+                template: {
+                    kind: 'utilization',
+                    data: {
+                        cardLabel,
+                        utilization,
+                        threshold: 95,
+                        limit: card.limitAmount,
+                        amount: currentDue,
+                    },
+                },
+            });
+        }
+        else if (utilization >= 0.8) {
+            reminders.push({
+                userId,
+                cardId: cardDoc.id,
+                eventKey: `card:${cardDoc.id}:utilization:80`,
+                type: 'utilization-80',
+                template: {
+                    kind: 'utilization',
+                    data: {
+                        cardLabel,
+                        utilization,
+                        threshold: 80,
+                        limit: card.limitAmount,
+                        amount: currentDue,
+                    },
+                },
+            });
+        }
+        for (const reminder of reminders) {
+            await notificationEngine.deliverReminder(reminder);
+        }
     }
-    if (daysToDue === 1) {
-        return `${cardLabel} payment is due tomorrow (${dueDisplay}). Balance: ${amountDisplay}.`;
-    }
-    return `${cardLabel} payment is due in ${daysToDue} days on ${dueDisplay}. Balance: ${amountDisplay}.`;
 }
-function sanitizeForKey(value) {
-    return value.replace(/[^a-zA-Z0-9_-]/g, '_');
+async function processBudgetAlerts(notificationEngine) {
+    const budgetsSnapshot = await firestore.collection('budgets').get();
+    if (budgetsSnapshot.empty) {
+        firebase_functions_1.logger.info('No budgets found for alert processing.');
+        return;
+    }
+    for (const budgetDoc of budgetsSnapshot.docs) {
+        const data = budgetDoc.data();
+        const userId = typeof data.userId === 'string' && data.userId.trim().length > 0
+            ? data.userId.trim()
+            : null;
+        if (!userId) {
+            continue;
+        }
+        const limit = toPositiveNumber(data.limitAmount ?? data.limit ?? data.amountLimit ?? data.total ?? null);
+        const spent = toPositiveNumber(data.spent ?? data.spentAmount ?? data.current ?? data.currentSpend ?? null);
+        const thresholds = normalizeThresholds(data.thresholds ?? data.alertThresholds ?? null);
+        const budgetLabel = determineBudgetLabel(data, budgetDoc.id);
+        if (limit <= 0 && spent <= 0) {
+            continue;
+        }
+        const usagePercentage = limit > 0 ? (spent / limit) * 100 : Number.POSITIVE_INFINITY;
+        for (const threshold of thresholds) {
+            if (usagePercentage >= threshold) {
+                await (0, budgetEngine_1.sendBudgetAlert)(notificationEngine, {
+                    userId,
+                    budgetId: budgetDoc.id,
+                    budgetLabel,
+                    spent,
+                    limit,
+                    threshold,
+                });
+            }
+        }
+    }
 }
-__exportStar(require("./new-apis"), exports);
+function toPositiveNumber(value) {
+    const num = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(num) && num > 0 ? num : 0;
+}
+function normalizeThresholds(value) {
+    const raw = Array.isArray(value) ? value : value != null ? [value] : [80, 100];
+    const thresholds = raw
+        .map(entry => {
+        const numeric = typeof entry === 'number' ? entry : Number(entry);
+        return Number.isFinite(numeric) ? numeric : null;
+    })
+        .filter((entry) => entry !== null)
+        .map(entry => Math.max(0, entry));
+    if (thresholds.length === 0) {
+        return [80, 100];
+    }
+    return Array.from(new Set(thresholds)).sort((a, b) => a - b);
+}
+function determineBudgetLabel(data, fallbackId) {
+    const labelCandidates = [
+        data.budgetLabel,
+        data.label,
+        data.name,
+        data.title,
+        `Budget ${fallbackId}`,
+    ];
+    for (const candidate of labelCandidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+            return candidate.trim();
+        }
+    }
+    return `Budget ${fallbackId}`;
+}
+function normalizeError(error) {
+    if (error instanceof Error) {
+        return { message: error.message };
+    }
+    return { message: 'Unknown error' };
+}

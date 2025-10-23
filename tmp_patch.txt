@@ -1,0 +1,8 @@
+*** Begin Patch
+*** Update File: finance-app/src/components/SettingsNotifications.tsx
+@@
+ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
++  const { t } = useTranslation()
+   const [status, setStatus] = useState<string | null>(null)
+*** End Patch
+

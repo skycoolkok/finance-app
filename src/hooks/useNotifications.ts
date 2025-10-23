@@ -24,6 +24,7 @@ export type UserNotification = {
   sentAt: Date | null
   read: boolean
   eventKey?: string
+  locale?: string
 }
 
 export type UseNotificationsOptions = {
@@ -87,6 +88,7 @@ export function useNotifications(
         sentAt,
         read: Boolean(data.read),
         eventKey: typeof data.eventKey === 'string' ? data.eventKey : undefined,
+        locale: typeof data.locale === 'string' ? data.locale : undefined,
       }
     },
     [],

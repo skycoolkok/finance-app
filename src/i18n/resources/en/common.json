@@ -226,16 +226,20 @@
       "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
       "buttons": {
         "sendPush": "Send Test Push",
-        "sendEmail": "Send Test Email"
+        "sendEmail": "Send Test Email",
+        "syncLocale": "Sync Language Preference"
       },
       "sending": {
         "push": "Sending push...",
-        "email": "Sending email..."
+        "email": "Sending email...",
+        "locale": "Syncing language..."
       },
       "messages": {
         "missingUser": "Sign in to send test notifications.",
         "pushSuccess": "Push delivered to {{count}} device(s).",
         "emailSuccess": "Test email sent via Resend.",
+        "localeSuccess": "Language preference updated to {{locale}}.",
+        "localeAuthRequired": "Sign in to sync your language preference.",
         "noAccess": "Sign in to access notification tools."
       }
     }

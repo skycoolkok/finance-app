@@ -58,3 +58,9 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: npm test -- --run
+
+  # When a deploy job is introduced, prepend it with the following step to ensure APP_BASE_URL is synced:
+  #   - name: Configure Firebase runtime config
+  #     uses: w9jds/firebase-action@v2
+  #     with:
+  #       args: functions:config:set app.base_url=${{ secrets.APP_BASE_URL }}

@@ -12,3 +12,7 @@ if (location.hostname === 'localhost') {
 // 建立 callable
 export const sendTestPush = httpsCallable(fns, 'sendTestPush')
 export const ping = httpsCallable(fns, 'ping')
+export const setUserLocale = httpsCallable<{ locale: string }, { locale: string }>(
+  fns,
+  'setUserLocale',
+)

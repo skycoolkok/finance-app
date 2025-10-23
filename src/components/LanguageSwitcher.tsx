@@ -1,37 +1,40 @@
 import { useMemo, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { FALLBACK_LANGUAGE, supportedLngs } from '../i18n'
+import { auth } from '../firebase'
+import { setUserLocale } from '../functions'
+import { normalizeLanguageTag } from '../lib/language'
 
 const LANGUAGE_OPTIONS = [
   { value: 'zh-TW', labelKey: 'language.zhTW' },
   { value: 'en', labelKey: 'language.en' },
 ] as const
 
-function normaliseLanguage(language: string | undefined) {
-  if (!language) {
-    return FALLBACK_LANGUAGE
-  }
-  const directMatch = supportedLngs.find(item => item === language)
-  if (directMatch) {
-    return directMatch
-  }
-  const prefixMatch = supportedLngs.find(item => language.startsWith(item.split('-')[0]))
-  return prefixMatch ?? FALLBACK_LANGUAGE
-}
-
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation()
 
   const currentValue = useMemo(
-    () => normaliseLanguage(i18n.resolvedLanguage || i18n.language),
+    () => normalizeLanguageTag(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   )
 
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextLanguage = event.target.value
-    if (nextLanguage !== i18n.language) {
-      void i18n.changeLanguage(nextLanguage)
+    const nextLanguage = normalizeLanguageTag(event.target.value)
+    const resolvedCurrent = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
+    if (nextLanguage !== resolvedCurrent) {
+      void (async () => {
+        await i18n.changeLanguage(nextLanguage)
+        const currentUser = auth.currentUser
+        if (currentUser) {
+          try {
+            await setUserLocale({ locale: nextLanguage })
+          } catch (error) {
+            if (import.meta.env.DEV) {
+              console.error('Failed to sync user locale', error)
+            }
+          }
+        }
+      })()
     }
   }
 

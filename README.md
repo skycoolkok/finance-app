@@ -71,3 +71,36 @@ export default defineConfig([
   },
 ])
 ```
+
+## Notes
+
+- The Firebase messaging service worker remains a static asset and is independent of runtime i18n features.
+
+## Deployment Preparation
+
+Before deploying Firebase Functions, complete the following:
+
+1. **Configure the app base URL**
+   ```bash
+   APP_BASE_URL="https://finance-app-sigma-jet.vercel.app" npm --prefix functions run config:set:appurl
+   ```
+   - **Windows PowerShell**
+     ```powershell
+     $env:APP_BASE_URL = "https://finance-app-sigma-jet.vercel.app"
+     npm --prefix functions run config:set:appurl
+     ```
+2. **Store the Resend API key**
+   ```bash
+   firebase functions:secrets:set RESEND_API_KEY
+   ```
+3. **Verify runtime configuration**
+   ```bash
+   npm --prefix functions run config:get
+   ```
+   Or run `firebase functions:config:get` directly.
+
+Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabling automated deployments.
+
+## Local Development
+
+- Copy `functions/.runtimeconfig.json.sample` to `functions/.runtimeconfig.json` so the emulator exposes `functions.config().app.base_url`.
