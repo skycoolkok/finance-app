@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { useCardSummaries } from '../hooks/useCardSummaries'
-import { currency } from '../lib/fmt'
+import { formatMoney, useCurrency } from '../lib/currency'
 import { CardSummary } from './CardSummary'
 
 type DashboardProps = {
@@ -12,6 +12,7 @@ export function Dashboard({ userId }: DashboardProps) {
   const { t, i18n } = useTranslation()
   const { summaries, totals, loading } = useCardSummaries(userId)
   const locale = i18n.resolvedLanguage || i18n.language
+  const currencyCode = useCurrency()
 
   return (
     <section className="space-y-5 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
@@ -25,11 +26,11 @@ export function Dashboard({ userId }: DashboardProps) {
             {t('dashboard.totalCurrentDue')}
           </p>
           <p className="text-lg font-semibold text-emerald-400">
-            {currency(totals.currentDue, locale)}
+            {formatMoney(totals.currentDue, { locale, currency: currencyCode })}
           </p>
           <p className="text-xs text-slate-500">
             {t('dashboard.nextEstimate', {
-              amount: currency(totals.nextEstimate, locale),
+              amount: formatMoney(totals.nextEstimate, { locale, currency: currencyCode }),
             })}
           </p>
         </div>

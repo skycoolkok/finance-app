@@ -94,4 +94,9 @@ if (!globalScope[listenerFlag]) {
 
 export const supportedLngs = supportedLanguages
 
+export function getCurrentLocale(): string {
+  const locale = i18next.resolvedLanguage || i18next.language
+  return locale || FALLBACK_LANGUAGE
+}
+
 export default i18next

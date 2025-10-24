@@ -1,8 +1,9 @@
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
-import { currency, date } from '../lib/fmt'
 import type { CardSummary as CardSummaryType } from '../hooks/useCardSummaries'
+import { formatMoney, useCurrency } from '../lib/currency'
+import { date } from '../lib/fmt'
 
 type CardSummaryProps = {
   summary: CardSummaryType
@@ -11,6 +12,7 @@ type CardSummaryProps = {
 export function CardSummary({ summary }: CardSummaryProps) {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage || i18n.language
+  const currencyCode = useCurrency()
 
   const {
     card,
@@ -45,11 +47,15 @@ export function CardSummary({ summary }: CardSummaryProps) {
       <dl className="grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-slate-400">{t('cards.summary.currentDue')}</dt>
-          <dd className="text-xl font-semibold text-slate-100">{currency(currentDue, locale)}</dd>
+          <dd className="text-xl font-semibold text-slate-100">
+            {formatMoney(currentDue, { locale, currency: currencyCode })}
+          </dd>
         </div>
         <div>
           <dt className="text-sm text-slate-400">{t('cards.summary.nextEstimate')}</dt>
-          <dd className="text-xl font-semibold text-slate-100">{currency(nextEstimate, locale)}</dd>
+          <dd className="text-xl font-semibold text-slate-100">
+            {formatMoney(nextEstimate, { locale, currency: currencyCode })}
+          </dd>
         </div>
         <div>
           <dt className="text-sm text-slate-400">{t('cards.summary.billingCycle')}</dt>

@@ -224,6 +224,15 @@
     "settings": {
       "title": "Notification Settings",
       "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
+      "currency": {
+        "label": "Display currency",
+        "description": "Choose how amounts are displayed across the app.",
+        "options": {
+          "USD": "US Dollar (USD)",
+          "TWD": "New Taiwan Dollar (TWD)"
+        },
+        "updated": "Currency updated to {{currency}}."
+      },
       "buttons": {
         "sendPush": "Send Test Push",
         "sendEmail": "Send Test Email",

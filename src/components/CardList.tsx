@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+
 import { db } from '../firebase'
 import type { Card } from '../models/types'
-import { currency } from '../lib/fmt'
+import { formatMoney, useCurrency } from '../lib/currency'
 
 type CardListProps = {
   userId: string | null
@@ -13,6 +14,7 @@ type CardListProps = {
 export default function CardList({ userId, onEdit }: CardListProps) {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage || i18n.language
+  const currencyCode = useCurrency()
   const [cards, setCards] = useState<Card[]>([])
 
   useEffect(() => {
@@ -69,7 +71,8 @@ export default function CardList({ userId, onEdit }: CardListProps) {
           </div>
           <div className="text-right text-sm">
             <p>
-              {t('cards.list.limit')}: {currency(Number(card.limitAmount ?? 0), locale)}
+              {t('cards.list.limit')}:{' '}
+              {formatMoney(Number(card.limitAmount ?? 0), { locale, currency: currencyCode })}
             </p>
             <p>
               {t('cards.list.due')}: {card.dueDay}

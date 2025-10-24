@@ -224,6 +224,15 @@
     "settings": {
       "title": "Notification Settings",
       "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
+      "currency": {
+        "label": "顯示貨幣",
+        "description": "選擇在介面中顯示金額時使用的貨幣。",
+        "options": {
+          "USD": "美元 (USD)",
+          "TWD": "新台幣 (TWD)"
+        },
+        "updated": "已更新貨幣為 {{currency}}。"
+      },
       "buttons": {
         "sendPush": "Send Test Push",
         "sendEmail": "Send Test Email",

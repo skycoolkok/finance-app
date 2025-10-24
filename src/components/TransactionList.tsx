@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+
 import { db } from '../firebase'
 import type { Card, Transaction, Wallet } from '../models/types'
-import { currency, date } from '../lib/fmt'
+import { formatMoney, useCurrency } from '../lib/currency'
+import { date } from '../lib/fmt'
 
 type TransactionListProps = {
   userId: string | null
@@ -16,6 +18,7 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
   const [cardsById, setCardsById] = useState<Record<string, Card>>({})
   const [walletsById, setWalletsById] = useState<Record<string, Wallet>>({})
   const locale = i18n.resolvedLanguage || i18n.language
+  const currencyCode = useCurrency()
 
   useEffect(() => {
     if (!userId) {
@@ -152,9 +155,9 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
               </p>
               {tx.note && <p className="mt-1 text-xs text-slate-400">{tx.note}</p>}
             </div>
-            <div className="text-right">
+              <div className="text-right">
               <p className="text-base font-semibold text-emerald-400">
-                {currency(tx.amount, locale)}
+                {formatMoney(tx.amount, { locale, currency: currencyCode })}
               </p>
               {tx.affectCurrentBill ? (
                 <p className="text-xs text-emerald-500">
