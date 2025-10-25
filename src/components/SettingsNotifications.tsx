@@ -7,6 +7,7 @@ import { auth, functions } from '../firebase'
 import { setUserLocale } from '../functions'
 import { useCurrency, setCurrency } from '../lib/currency'
 import { normalizeLanguageTag } from '../lib/language'
+import { useLocale } from '../lib/locale'
 
 type SettingsNotificationsProps = {
   userId: string | null
@@ -15,6 +16,7 @@ type SettingsNotificationsProps = {
 export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
   const { t, i18n } = useTranslation()
   const currencyCode = useCurrency()
+  const currentLocale = useLocale()
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState<'push' | 'email' | null>(null)
@@ -93,6 +95,22 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
     setStatus(t('notifications.settings.currency.updated', { currency: currencyLabel }))
   }
 
+  const handleLanguageChange = async (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextLocale = normalizeLanguageTag(event.target.value)
+    setError(null)
+    setStatus(null)
+
+    try {
+      await i18n.changeLanguage(nextLocale)
+      const label = t(
+        `notifications.settings.language.options.${nextLocale.replace('-', '')}` as const,
+      )
+      setStatus(t('notifications.settings.language.updated', { locale: label }))
+    } catch (changeError) {
+      setError(changeError instanceof Error ? changeError.message : String(changeError))
+    }
+  }
+
   return (
     <section className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
       <header>
@@ -114,6 +132,26 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
       )}
 
       <div className="space-y-2 rounded border border-slate-800 bg-slate-950/60 p-4">
+        <label htmlFor="language-select" className="text-sm font-medium text-slate-200">
+          {t('notifications.settings.language.label')}
+        </label>
+        <select
+          id="language-select"
+          className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+          value={currentLocale}
+          onChange={event => {
+            void handleLanguageChange(event)
+          }}
+        >
+          <option value="en">{t('notifications.settings.language.options.en')}</option>
+          <option value="zh-TW">{t('notifications.settings.language.options.zhTW')}</option>
+        </select>
+        <p className="text-xs text-slate-500">
+          {t('notifications.settings.language.description')}
+        </p>
+      </div>
+
+      <div className="space-y-2 rounded border border-slate-800 bg-slate-950/60 p-4">
         <label htmlFor="currency-select" className="text-sm font-medium text-slate-200">
           {t('notifications.settings.currency.label')}
         </label>
@@ -130,6 +168,10 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           {t('notifications.settings.currency.description')}
         </p>
       </div>
+
+      <p className="text-xs text-slate-500">
+        Locale: {currentLocale} | Currency: {currencyCode}
+      </p>
 
       <div className="space-y-3">
         <button

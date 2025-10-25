@@ -224,6 +224,15 @@
     "settings": {
       "title": "Notification Settings",
       "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
+      "language": {
+        "label": "顯示語言",
+        "description": "選擇介面顯示的語言。",
+        "options": {
+          "en": "English (英文)",
+          "zhTW": "繁體中文"
+        },
+        "updated": "已更新語言為 {{locale}}。"
+      },
       "currency": {
         "label": "顯示貨幣",
         "description": "選擇在介面中顯示金額時使用的貨幣。",

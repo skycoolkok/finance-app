@@ -1,21 +1,10 @@
-import { FALLBACK_LANGUAGE, supportedLngs } from '../i18n'
+import { supportedLngs } from '../i18n'
+import { FALLBACK_LOCALE, normalizeLocale } from './locale'
 
 export function normalizeLanguageTag(language: string | null | undefined): string {
-  if (!language) {
-    return FALLBACK_LANGUAGE
+  const normalized = normalizeLocale(language ?? undefined)
+  if (supportedLngs.includes(normalized)) {
+    return normalized
   }
-
-  const trimmed = language.trim()
-  if (!trimmed) {
-    return FALLBACK_LANGUAGE
-  }
-
-  if (supportedLngs.includes(trimmed)) {
-    return trimmed
-  }
-
-  const base = trimmed.split('-')[0]
-  const matched = supportedLngs.find(item => item.split('-')[0] === base)
-  return matched ?? FALLBACK_LANGUAGE
+  return FALLBACK_LOCALE
 }
-

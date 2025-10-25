@@ -1,79 +1,57 @@
 import { useSyncExternalStore } from 'react'
 
-import { FALLBACK_LANGUAGE, getCurrentLocale } from '../i18n'
+import {
+  AppLocale,
+  PREFERENCE_CHANGE_EVENT,
+  PreferenceChangeDetail,
+  dispatchPreferenceChange,
+  getCurrentLocale,
+  normalizeLocale,
+} from './locale'
 
-const CURRENCY_STORAGE_KEY = 'app:currency'
-const CURRENCY_CHANGE_EVENT = 'app:currency-change'
+export type Currency = 'USD' | 'TWD'
 
-const LOCALE_CURRENCY_MAP: Record<string, string> = {
-  'zh-TW': 'TWD',
-  en: 'USD',
+type FormatMoneyOptions = {
+  currency?: Currency
+  locale?: string
 }
 
-const DEFAULT_CURRENCY = 'USD'
+const CURRENCY_STORAGE_KEY = 'app:currency'
+const DEFAULT_CURRENCY: Currency = 'USD'
+
+const LOCALE_CURRENCY_MAP: Record<AppLocale, Currency> = {
+  en: 'USD',
+  'zh-TW': 'TWD',
+}
 
 const listeners = new Set<() => void>()
 const formatterCache = new Map<string, Intl.NumberFormat>()
 
-let cachedCurrency: string | null = null
+let cachedCurrency: Currency | null = null
 
-type FormatMoneyOptions = {
-  currency?: string
-  locale?: string
-}
-
-function normalizeCurrencyCode(code: string | null | undefined): string | null {
-  if (!code) {
+function normalizeCurrency(value: string | null | undefined): Currency | null {
+  if (!value) {
     return null
   }
-  const trimmed = code.trim().toUpperCase()
-  return trimmed.length > 0 ? trimmed : null
+  const trimmed = value.trim().toUpperCase()
+  if (trimmed === 'USD' || trimmed === 'TWD') {
+    return trimmed
+  }
+  return null
 }
 
-function normalizeLocale(locale: string | null | undefined): string {
-  if (!locale) {
-    return FALLBACK_LANGUAGE
-  }
-
-  const trimmed = locale.trim()
-  if (!trimmed) {
-    return FALLBACK_LANGUAGE
-  }
-
-  const lower = trimmed.toLowerCase()
-  if (lower === 'zh' || lower.startsWith('zh-')) {
-    return 'zh-TW'
-  }
-  if (lower === 'en' || lower.startsWith('en-')) {
-    return 'en'
-  }
-
-  return trimmed
-}
-
-function deriveCurrencyFromLocale(locale: string): string {
-  const normalisedLocale = normalizeLocale(locale)
-  if (LOCALE_CURRENCY_MAP[normalisedLocale]) {
-    return LOCALE_CURRENCY_MAP[normalisedLocale]
-  }
-
-  const base = normalisedLocale.split('-')[0]
-  const matched = Object.entries(LOCALE_CURRENCY_MAP).find(([key]) => key.startsWith(base))
-  return matched ? matched[1] : DEFAULT_CURRENCY
-}
-
-function readStoredCurrency(): string | null {
+function readStoredCurrency(): Currency | null {
   if (typeof window === 'undefined') {
     return null
   }
   try {
-    return window.localStorage.getItem(CURRENCY_STORAGE_KEY)
+    return normalizeCurrency(window.localStorage.getItem(CURRENCY_STORAGE_KEY))
   } catch {
     return null
   }
 }
 
-function persistCurrency(currency: string) {
+function persistCurrency(currency: Currency) {
   if (typeof window === 'undefined') {
     return
   }
@@ -84,26 +62,22 @@ function persistCurrency(currency: string) {
   }
 }
 
-function notifyCurrencyChange() {
-  listeners.forEach(listener => listener())
-  if (typeof window !== 'undefined') {
-    try {
-      const event = new CustomEvent<string>(CURRENCY_CHANGE_EVENT, {
-        detail: cachedCurrency ?? undefined,
-      })
-      window.dispatchEvent(event)
-    } catch {
-      // ignore dispatch errors
-    }
-  }
+function deriveCurrencyFromLocale(locale: AppLocale): Currency {
+  return LOCALE_CURRENCY_MAP[locale] ?? DEFAULT_CURRENCY
 }
 
-function ensureCachedCurrency(): string {
+function notifyCurrencySubscribers() {
+  listeners.forEach(listener => {
+    listener()
+  })
+}
+
+function ensureCurrency(): Currency {
   if (cachedCurrency) {
     return cachedCurrency
   }
 
-  const stored = normalizeCurrencyCode(readStoredCurrency())
+  const stored = readStoredCurrency()
   if (stored) {
     cachedCurrency = stored
     return cachedCurrency
@@ -124,37 +98,55 @@ function subscribe(listener: () => void) {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', event => {
-    if (event.key === CURRENCY_STORAGE_KEY) {
-      const next = normalizeCurrencyCode(event.newValue)
-      if (next) {
-        cachedCurrency = next
-        notifyCurrencyChange()
-      }
+    if (event.key !== CURRENCY_STORAGE_KEY) {
+      return
     }
+    const next = normalizeCurrency(event.newValue)
+    if (!next || cachedCurrency === next) {
+      return
+    }
+    cachedCurrency = next
+    notifyCurrencySubscribers()
+  })
+
+  window.addEventListener(PREFERENCE_CHANGE_EVENT, event => {
+    const custom = event as CustomEvent<PreferenceChangeDetail>
+    if (custom.detail?.type !== 'currency') {
+      return
+    }
+    const next = normalizeCurrency(custom.detail.value)
+    if (!next || cachedCurrency === next) {
+      return
+    }
+    cachedCurrency = next
+    persistCurrency(next)
+    notifyCurrencySubscribers()
   })
 }
 
-export function getCurrency(): string {
-  return ensureCachedCurrency()
+export function getCurrency(): Currency {
+  return ensureCurrency()
 }
 
-export function setCurrency(currency: string): void {
-  const normalized = normalizeCurrencyCode(currency)
+export function setCurrency(currency: Currency | string): Currency | null {
+  const normalized = normalizeCurrency(currency)
   if (!normalized) {
-    return
+    return null
   }
 
   if (cachedCurrency === normalized) {
     persistCurrency(normalized)
-    return
+    return normalized
   }
 
   cachedCurrency = normalized
   persistCurrency(normalized)
-  notifyCurrencyChange()
+  notifyCurrencySubscribers()
+  dispatchPreferenceChange({ type: 'currency', value: normalized })
+  return normalized
 }
 
-function getFormatter(locale: string, currency: string): Intl.NumberFormat {
+function getFormatter(locale: AppLocale, currency: Currency): Intl.NumberFormat {
   const key = `${locale}:${currency}`
   const cachedFormatter = formatterCache.get(key)
   if (cachedFormatter) {
@@ -164,6 +156,7 @@ function getFormatter(locale: string, currency: string): Intl.NumberFormat {
   const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    currencyDisplay: 'symbol',
   })
   formatterCache.set(key, formatter)
   return formatter
@@ -184,8 +177,6 @@ export function formatMoney(value: number, options?: FormatMoneyOptions): string
   }
 }
 
-export function useCurrency(): string {
+export function useCurrency(): Currency {
   return useSyncExternalStore(subscribe, getCurrency, getCurrency)
 }
-
-export const currencyChangeEvent = CURRENCY_CHANGE_EVENT

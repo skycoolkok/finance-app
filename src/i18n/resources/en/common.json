@@ -224,6 +224,15 @@
     "settings": {
       "title": "Notification Settings",
       "subtitle": "Trigger test notifications to verify device tokens and email configuration.",
+      "language": {
+        "label": "Display language",
+        "description": "Choose the interface language.",
+        "options": {
+          "en": "English",
+          "zhTW": "Traditional Chinese (繁體中文)"
+        },
+        "updated": "Language updated to {{locale}}."
+      },
       "currency": {
         "label": "Display currency",
         "description": "Choose how amounts are displayed across the app.",
