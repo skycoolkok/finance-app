@@ -1,0 +1,46 @@
+<mjml>
+  <mj-body background-color="#fdf2f8">
+    <mj-section background-color="#be185d" padding="24px 24px 0 24px">
+      <mj-column>
+        <mj-text font-size="18px" color="#fff1f2" font-weight="600">Finance App 提醒</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600" color="#831843" padding-bottom="12px">{{heading}}</mj-text>
+        <mj-text font-size="14px" line-height="1.7" color="#9d174d" padding-bottom="16px">
+          {{intro}}
+        </mj-text>
+        {{#if facts}}
+          <mj-text color="#9d174d" font-size="14px" padding-bottom="20px">
+            <ul style="padding-left:20px; margin:0;">
+              {{#each facts}}
+                <li style="margin-bottom:6px;">{{this}}</li>
+              {{/each}}
+            </ul>
+          </mj-text>
+        {{/if}}
+        {{#if ctaText}}
+          <mj-button background-color="#ec4899" color="#ffffff" font-size="14px" font-weight="600" href="{{clickUrl}}" padding="0 0 20px 0">
+            {{ctaText}}
+          </mj-button>
+        {{/if}}
+        <mj-text font-size="12px" color="#db2777">
+          如需複製連結，請使用：<br />
+          <a href="{{ctaUrl}}" style="color:#db2777;">{{ctaUrl}}</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#be185d" padding="16px 24px">
+      <mj-column>
+        <mj-text font-size="11px" color="#fdf2f8">
+          這封信件來自 Finance App 通知系統。<br />
+          <a href="{{preferencesUrl}}" style="color:#f9a8d4;">調整通知偏好</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw>
+      <img src="{{openUrl}}" width="1" height="1" style="display:none;" alt="" />
+    </mj-raw>
+  </mj-body>
+</mjml>

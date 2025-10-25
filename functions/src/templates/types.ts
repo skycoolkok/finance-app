@@ -6,7 +6,8 @@ export type NotificationContent = {
   }
   email: {
     subject: string
-    html: string
+    templateName: 'email'
+    context: Record<string, unknown>
   }
   url: string
 }
@@ -42,4 +43,3 @@ export type NotificationTemplates = {
   utilizationAlert: (input: UtilizationAlertInput) => NotificationContent
   budgetAlert: (input: BudgetAlertInput) => NotificationContent
 }
-

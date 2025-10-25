@@ -262,6 +262,8 @@ export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
 export { sendTestEmailGet }
 
 export * from './new-apis'
+export { openPixel } from './tracking/openPixel'
+export { clickRedirect } from './tracking/clickRedirect'
 
 async function fetchUserTokens(userId: string) {
   const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get()

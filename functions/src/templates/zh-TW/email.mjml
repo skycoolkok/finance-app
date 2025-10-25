@@ -1,0 +1,46 @@
+<mjml>
+  <mj-body background-color="#0f172a">
+    <mj-section background-color="#1e293b" padding="20px 24px 0 24px">
+      <mj-column>
+        <mj-text font-size="18px" color="#e2e8f0" font-weight="600">財務助手通知</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="600" color="#0f172a" padding-bottom="12px">{{heading}}</mj-text>
+        <mj-text font-size="14px" line-height="1.7" color="#334155" padding-bottom="16px">
+          {{intro}}
+        </mj-text>
+        {{#if facts}}
+          <mj-text color="#1e293b" font-size="14px" padding-bottom="20px">
+            <ul style="padding-left:20px; margin:0;">
+              {{#each facts}}
+                <li style="margin-bottom:6px;">{{this}}</li>
+              {{/each}}
+            </ul>
+          </mj-text>
+        {{/if}}
+        {{#if ctaText}}
+          <mj-button background-color="#22c55e" color="#0f172a" font-size="14px" font-weight="600" href="{{clickUrl}}" padding="0 0 20px 0">
+            {{ctaText}}
+          </mj-button>
+        {{/if}}
+        <mj-text font-size="12px" color="#64748b">
+          若按鈕無法使用，請複製以下連結：<br />
+          <a href="{{ctaUrl}}" style="color:#22c55e;">{{ctaUrl}}</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#1e293b" padding="16px 24px">
+      <mj-column>
+        <mj-text font-size="11px" color="#cbd5f5">
+          您的 Finance App 帳戶已啟用通知功能。<br />
+          <a href="{{preferencesUrl}}" style="color:#38bdf8;">管理通知設定</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw>
+      <img src="{{openUrl}}" width="1" height="1" style="display:none;" alt="" />
+    </mj-raw>
+  </mj-body>
+</mjml>

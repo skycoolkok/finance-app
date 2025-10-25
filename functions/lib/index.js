@@ -36,7 +36,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendTestEmailGet = exports.scheduledBudget = exports.setUserLocale = exports.sendTestEmail = exports.sendTestPush = exports.registerToken = void 0;
+exports.clickRedirect = exports.openPixel = exports.sendTestEmailGet = exports.scheduledBudget = exports.setUserLocale = exports.sendTestEmail = exports.sendTestPush = exports.registerToken = void 0;
 require("dotenv/config");
 const admin = __importStar(require("firebase-admin"));
 const firebase_functions_1 = require("firebase-functions");
@@ -221,6 +221,10 @@ exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async ()
     await processBudgetAlerts(notificationEngine);
 });
 __exportStar(require("./new-apis"), exports);
+var openPixel_1 = require("./tracking/openPixel");
+Object.defineProperty(exports, "openPixel", { enumerable: true, get: function () { return openPixel_1.openPixel; } });
+var clickRedirect_1 = require("./tracking/clickRedirect");
+Object.defineProperty(exports, "clickRedirect", { enumerable: true, get: function () { return clickRedirect_1.clickRedirect; } });
 async function fetchUserTokens(userId) {
     const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get();
     return snapshot.docs

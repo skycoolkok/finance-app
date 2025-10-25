@@ -93,7 +93,16 @@ Before deploying Firebase Functions, complete the following:
    ```bash
    firebase functions:secrets:set RESEND_API_KEY
    ```
-3. **Verify runtime configuration**
+3. **(Recommended) Configure tracking endpoints**
+   ```bash
+   firebase functions:config:set \
+     app.app_base_url="https://finance-app-sigma-jet.vercel.app" \
+     app.open_pixel_url="https://asia-east1-<your-project-id>.cloudfunctions.net/openPixel" \
+     app.click_redirect_url="https://asia-east1-<your-project-id>.cloudfunctions.net/clickRedirect"
+   ```
+   - Replace `<your-project-id>` with your Firebase project ID.
+   - If you omit `open_pixel_url` or `click_redirect_url`, the functions fallback to the values derived from `APP_BASE_URL`.
+4. **Verify runtime configuration**
    ```bash
    npm --prefix functions run config:get
    ```
@@ -104,3 +113,9 @@ Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabl
 ## Local Development
 
 - Copy `functions/.runtimeconfig.json.sample` to `functions/.runtimeconfig.json` so the emulator exposes `functions.config().app.base_url`.
+- Deploy functions after building:
+  ```bash
+  npm --prefix functions install
+  npm --prefix functions run build
+  firebase deploy --only functions
+  ```

@@ -16,28 +16,18 @@ const templates: NotificationTemplates = {
     const summary = formatDueSummary(input, amount, dueDate)
     const subject = 'Card payment reminder'
 
-    return {
+    return buildNotification({
+      subject,
       summary,
-      push: {
-        title: subject,
-        body: summary,
-      },
-      email: {
-        subject,
-        html: renderEmail({
-          heading: subject,
-          intro: summary,
-          facts: [
-            `Card: ${input.cardLabel}`,
-            `Due date: ${dueDate}`,
-            `Balance: ${amount}`,
-          ],
-          ctaText: 'Review card activity',
-          url,
-        }),
-      },
       url,
-    }
+      facts: [
+        `Card: ${input.cardLabel}`,
+        `Due date: ${dueDate}`,
+        `Balance: ${amount}`,
+      ],
+      ctaText: 'Review card activity',
+      baseUrl: input.baseUrl,
+    })
   },
 
   utilizationAlert: input => {
@@ -50,28 +40,18 @@ const templates: NotificationTemplates = {
 
     const summary = `${input.cardLabel} is at ${percent}% of its credit limit (balance ${amount} of ${limit}).`
 
-    return {
+    return buildNotification({
+      subject,
       summary,
-      push: {
-        title: subject,
-        body: summary,
-      },
-      email: {
-        subject,
-        html: renderEmail({
-          heading: subject,
-          intro: summary,
-          facts: [
-            `Card: ${input.cardLabel}`,
-            `Current balance: ${amount}`,
-            `Credit limit: ${limit}`,
-          ],
-          ctaText: 'Open cards dashboard',
-          url,
-        }),
-      },
       url,
-    }
+      facts: [
+        `Card: ${input.cardLabel}`,
+        `Current balance: ${amount}`,
+        `Credit limit: ${limit}`,
+      ],
+      ctaText: 'Open cards dashboard',
+      baseUrl: input.baseUrl,
+    })
   },
 
   budgetAlert: input => {
@@ -88,28 +68,18 @@ const templates: NotificationTemplates = {
         ? `${input.budgetLabel} exceeded its budget (spent ${spent} of ${limit}).`
         : `${input.budgetLabel} is at ${percent}% of its budget (spent ${spent} of ${limit}).`
 
-    return {
+    return buildNotification({
+      subject,
       summary,
-      push: {
-        title: subject,
-        body: summary,
-      },
-      email: {
-        subject,
-        html: renderEmail({
-          heading: subject,
-          intro: summary,
-          facts: [
-            `Budget: ${input.budgetLabel}`,
-            `Spent: ${spent}`,
-            `Limit: ${limit}`,
-          ],
-          ctaText: 'Review budget details',
-          url,
-        }),
-      },
       url,
-    }
+      facts: [
+        `Budget: ${input.budgetLabel}`,
+        `Spent: ${spent}`,
+        `Limit: ${limit}`,
+      ],
+      ctaText: 'Review budget details',
+      baseUrl: input.baseUrl,
+    })
   },
 }
 
@@ -155,53 +125,38 @@ function ensureTrailingSlash(baseUrl: string): string {
   return baseUrl
 }
 
-type EmailTemplateOptions = {
-  heading: string
-  intro: string
+type BuildOptions = {
+  subject: string
+  summary: string
+  url: string
   facts: string[]
   ctaText: string
-  url: string
+  baseUrl: string
 }
 
-function renderEmail(options: EmailTemplateOptions): string {
-  const factsList = options.facts
-    .map(item => `<li style="margin-bottom:4px">${escapeHtml(item)}</li>`)
-    .join('')
+function buildNotification(options: BuildOptions): NotificationContent {
+  const preferencesUrl = resolveUrl(options.baseUrl, '/settings/notifications')
+  const logoUrl = resolveUrl(options.baseUrl, '/icons/icon-192.png')
 
-  return `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(options.heading)}</title>
-  </head>
-  <body style="font-family: Arial, sans-serif; color: #0f172a; background-color: #f8fafc; padding: 24px;">
-    <table role="presentation" style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 24px;">
-      <tr>
-        <td>
-          <h1 style="font-size: 20px; margin-bottom: 12px;">${escapeHtml(options.heading)}</h1>
-          <p style="font-size: 14px; line-height: 1.5; margin-bottom: 16px;">${escapeHtml(options.intro)}</p>
-          <ul style="padding-left: 20px; margin-bottom: 20px; font-size: 14px; color: #1e293b;">
-            ${factsList}
-          </ul>
-          <p style="margin: 0;">
-            <a href="${options.url}" style="display: inline-block; padding: 10px 16px; background-color: #0ea5e9; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-              ${escapeHtml(options.ctaText)}
-            </a>
-          </p>
-          <p style="font-size: 12px; color: #64748b; margin-top: 24px;">You are receiving this reminder because it was enabled in Finance App.</p>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
+  return {
+    summary: options.summary,
+    push: {
+      title: options.subject,
+      body: options.summary,
+    },
+    email: {
+      subject: options.subject,
+      templateName: 'email',
+      context: {
+        heading: options.subject,
+        intro: options.summary,
+        facts: options.facts,
+        ctaText: options.ctaText,
+        ctaUrl: options.url,
+        preferencesUrl,
+        logoUrl,
+      },
+    },
+    url: options.url,
+  }
 }
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-

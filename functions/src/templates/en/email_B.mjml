@@ -1,0 +1,46 @@
+<mjml>
+  <mj-body background-color="#fdf4ff">
+    <mj-section background-color="#581c87" padding="24px 24px 0 24px">
+      <mj-column>
+        <mj-text font-size="18px" color="#f5f3ff" font-weight="600">Finance App Insights</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600" color="#312e81" padding-bottom="12px">{{heading}}</mj-text>
+        <mj-text font-size="14px" line-height="1.6" color="#4338ca" padding-bottom="16px">
+          {{intro}}
+        </mj-text>
+        {{#if facts}}
+          <mj-text color="#4c1d95" font-size="14px" padding-bottom="20px">
+            <ul style="padding-left:20px; margin:0;">
+              {{#each facts}}
+                <li style="margin-bottom:6px;">{{this}}</li>
+              {{/each}}
+            </ul>
+          </mj-text>
+        {{/if}}
+        {{#if ctaText}}
+          <mj-button background-color="#6366f1" color="#ffffff" font-size="14px" font-weight="600" href="{{clickUrl}}" padding="0 0 20px 0">
+            {{ctaText}}
+          </mj-button>
+        {{/if}}
+        <mj-text font-size="12px" color="#6d28d9">
+          Can't click the button? Copy this link:<br />
+          <a href="{{ctaUrl}}" style="color:#4f46e5;">{{ctaUrl}}</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#581c87" padding="16px 24px">
+      <mj-column>
+        <mj-text font-size="11px" color="#ede9fe">
+          Notifications are part of your Finance App account.<br />
+          <a href="{{preferencesUrl}}" style="color:#c4b5fd;">Manage settings</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-raw>
+      <img src="{{openUrl}}" width="1" height="1" style="display:none;" alt="" />
+    </mj-raw>
+  </mj-body>
+</mjml>

@@ -39,6 +39,10 @@ exports.logNotificationRecord = logNotificationRecord;
 const admin = __importStar(require("firebase-admin"));
 const firebase_functions_1 = require("firebase-functions");
 const templates_1 = require("../templates");
+const renderer_1 = require("../templates/renderer");
+const clickRedirect_1 = require("../tracking/clickRedirect");
+const openPixel_1 = require("../tracking/openPixel");
+const abtest_1 = require("./abtest");
 const utils_1 = require("./utils");
 class NotificationEngine {
     constructor(options) {
@@ -60,11 +64,12 @@ class NotificationEngine {
         });
         const templates = (0, templates_1.getTemplates)(locale);
         const content = this.renderContent(templates, reminder.template);
-        await this.deliverPush(reminder, content, locale);
-        await this.deliverEmail(reminder, content, locale);
+        const abVariant = (0, abtest_1.assignVariant)({ userId: reminder.userId, eventKey: reminder.eventKey });
+        await this.deliverPush(reminder, content, locale, abVariant);
+        await this.deliverEmail(reminder, content, locale, abVariant);
     }
     async log(record) {
-        await logNotificationRecord(this.firestore, record);
+        return logNotificationRecord(this.firestore, record);
     }
     async resolveLocale(userId) {
         return fetchUserLocale({
@@ -96,7 +101,7 @@ class NotificationEngine {
             }
         }
     }
-    async deliverPush(reminder, content, locale) {
+    async deliverPush(reminder, content, locale, abVariant) {
         const shouldSend = !(await this.wasEventSentRecently(reminder, 'push'));
         if (!shouldSend) {
             return;
@@ -111,7 +116,7 @@ class NotificationEngine {
                 title: content.push.title,
                 body: content.push.body,
             },
-            data: this.composeDataPayload(reminder, locale, content.url),
+            data: this.composeDataPayload(reminder, locale, content.url, abVariant),
         });
         await this.log({
             userId: reminder.userId,
@@ -122,10 +127,11 @@ class NotificationEngine {
             locale,
             cardId: reminder.cardId,
             budgetId: reminder.budgetId,
+            abVariant,
         });
         await this.rememberNotificationKey(reminder, 'push');
     }
-    async deliverEmail(reminder, content, locale) {
+    async deliverEmail(reminder, content, locale, abVariant) {
         if (!this.resendClient) {
             return;
         }
@@ -137,12 +143,60 @@ class NotificationEngine {
         if (!email) {
             return;
         }
+        const nid = this.firestore.collection('notifications').doc().id;
+        const resolvedLocale = (0, templates_1.resolveLocaleTag)(locale);
+        const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)(this.baseUrl);
+        const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)(this.baseUrl);
+        const openUrl = this.appendTrackingParams(baseOpenPixelUrl, {
+            nid,
+            uid: reminder.userId,
+            variant: abVariant,
+            event: reminder.eventKey,
+            channel: 'email',
+        });
+        const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
+            nid,
+            uid: reminder.userId,
+            variant: abVariant,
+            event: reminder.eventKey,
+            channel: 'email',
+            url: content.url,
+        });
+        const emailContext = {
+            ...content.email.context,
+            openUrl,
+            clickUrl,
+            ctaUrl: content.email.context?.ctaUrl ?? content.url,
+            preferencesUrl: content.email.context?.preferencesUrl ??
+                this.appendPath(this.baseUrl, '/settings/notifications'),
+            logoUrl: content.email.context?.logoUrl ??
+                this.appendPath(this.baseUrl, '/icons/icon-192.png'),
+        };
+        let html;
+        try {
+            html = await (0, renderer_1.renderEmailTemplate)({
+                locale: resolvedLocale,
+                variant: abVariant,
+                templateName: content.email.templateName,
+                context: emailContext,
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to render email template', {
+                error,
+                locale: resolvedLocale,
+                userId: reminder.userId,
+                templateName: content.email.templateName,
+                variant: abVariant,
+            });
+            return;
+        }
         try {
             await this.resendClient.emails.send({
                 from: 'Finance App <notifications@finance-app.dev>',
                 to: email,
                 subject: content.email.subject,
-                html: content.email.html,
+                html,
                 text: content.summary,
             });
         }
@@ -163,15 +217,55 @@ class NotificationEngine {
             locale,
             cardId: reminder.cardId,
             budgetId: reminder.budgetId,
+            abVariant,
+            nid,
+            tracking: {
+                openUrl,
+                clickUrl,
+            },
         });
         await this.rememberNotificationKey(reminder, 'email');
     }
-    composeDataPayload(reminder, locale, url) {
+    appendTrackingParams(base, params) {
+        const candidates = [base, this.appendPath(this.baseUrl, base)];
+        for (const candidate of candidates) {
+            if (!candidate) {
+                continue;
+            }
+            try {
+                const url = new URL(candidate);
+                for (const [key, value] of Object.entries(params)) {
+                    if (value === undefined || value === null) {
+                        continue;
+                    }
+                    url.searchParams.set(key, String(value));
+                }
+                return url.toString();
+            }
+            catch {
+                continue;
+            }
+        }
+        return base;
+    }
+    appendPath(base, path) {
+        try {
+            return new URL(path, this.ensureTrailingSlash(base)).toString();
+        }
+        catch {
+            return base;
+        }
+    }
+    ensureTrailingSlash(value) {
+        return value.endsWith('/') ? value : `${value}/`;
+    }
+    composeDataPayload(reminder, locale, url, abVariant) {
         const data = {
             type: reminder.type,
             eventKey: reminder.eventKey,
             locale: (0, templates_1.resolveLocaleTag)(locale),
             url,
+            variant: abVariant,
         };
         if (reminder.cardId) {
             data.cardId = reminder.cardId;
@@ -245,7 +339,9 @@ async function fetchUserLocale({ firestore, userId, cache, }) {
     return locale;
 }
 async function logNotificationRecord(firestore, record) {
-    await firestore.collection('notifications').add({
+    const collection = firestore.collection('notifications');
+    const docRef = record.nid ? collection.doc(record.nid) : collection.doc();
+    const payload = {
         userId: record.userId,
         type: record.type,
         message: record.message,
@@ -254,7 +350,17 @@ async function logNotificationRecord(firestore, record) {
         locale: (0, templates_1.resolveLocaleTag)(record.locale),
         cardId: record.cardId ?? null,
         budgetId: record.budgetId ?? null,
+        nid: docRef.id,
+        abVariant: record.abVariant ?? null,
         read: false,
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+    if (record.metadata) {
+        payload.metadata = record.metadata;
+    }
+    if (record.tracking) {
+        payload.tracking = record.tracking;
+    }
+    await docRef.set(payload, { merge: true });
+    return docRef.id;
 }

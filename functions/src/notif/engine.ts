@@ -11,6 +11,10 @@ import {
   type NotificationTemplates,
   type UtilizationAlertInput,
 } from '../templates'
+import { renderEmailTemplate } from '../templates/renderer'
+import { resolveClickRedirectUrl } from '../tracking/clickRedirect'
+import { resolveOpenPixelUrl } from '../tracking/openPixel'
+import { assignVariant, type AbVariant } from './abtest'
 import { sanitizeForKey } from './utils'
 
 type MessagingClient = messaging.Messaging
@@ -39,6 +43,13 @@ export type NotificationLogRecord = {
   locale: string
   cardId?: string
   budgetId?: string
+  abVariant?: AbVariant
+  nid?: string
+  metadata?: Record<string, unknown>
+  tracking?: {
+    openUrl?: string
+    clickUrl?: string
+  }
 }
 
 type NotificationEngineOptions = {
@@ -81,12 +92,14 @@ export class NotificationEngine {
     const templates = getTemplates(locale)
     const content = this.renderContent(templates, reminder.template)
 
-    await this.deliverPush(reminder, content, locale)
-    await this.deliverEmail(reminder, content, locale)
+    const abVariant = assignVariant({ userId: reminder.userId, eventKey: reminder.eventKey })
+
+    await this.deliverPush(reminder, content, locale, abVariant)
+    await this.deliverEmail(reminder, content, locale, abVariant)
   }
 
-  async log(record: NotificationLogRecord): Promise<void> {
-    await logNotificationRecord(this.firestore, record)
+  async log(record: NotificationLogRecord): Promise<string> {
+    return logNotificationRecord(this.firestore, record)
   }
 
   async resolveLocale(userId: string): Promise<string> {
@@ -128,6 +141,7 @@ export class NotificationEngine {
     reminder: ReminderEvent,
     content: NotificationContent,
     locale: string,
+    abVariant: AbVariant,
   ): Promise<void> {
     const shouldSend = !(await this.wasEventSentRecently(reminder, 'push'))
     if (!shouldSend) {
@@ -145,7 +159,7 @@ export class NotificationEngine {
         title: content.push.title,
         body: content.push.body,
       },
-      data: this.composeDataPayload(reminder, locale, content.url),
+      data: this.composeDataPayload(reminder, locale, content.url, abVariant),
     })
 
     await this.log({
@@ -157,6 +171,7 @@ export class NotificationEngine {
       locale,
       cardId: reminder.cardId,
       budgetId: reminder.budgetId,
+      abVariant,
     })
 
     await this.rememberNotificationKey(reminder, 'push')
@@ -166,6 +181,7 @@ export class NotificationEngine {
     reminder: ReminderEvent,
     content: NotificationContent,
     locale: string,
+    abVariant: AbVariant,
   ): Promise<void> {
     if (!this.resendClient) {
       return
@@ -181,12 +197,67 @@ export class NotificationEngine {
       return
     }
 
+    const nid = this.firestore.collection('notifications').doc().id
+    const resolvedLocale = resolveLocaleTag(locale)
+
+    const baseOpenPixelUrl = resolveOpenPixelUrl(this.baseUrl)
+    const baseClickRedirectUrl = resolveClickRedirectUrl(this.baseUrl)
+
+    const openUrl = this.appendTrackingParams(baseOpenPixelUrl, {
+      nid,
+      uid: reminder.userId,
+      variant: abVariant,
+      event: reminder.eventKey,
+      channel: 'email',
+    })
+
+    const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
+      nid,
+      uid: reminder.userId,
+      variant: abVariant,
+      event: reminder.eventKey,
+      channel: 'email',
+      url: content.url,
+    })
+
+    const emailContext = {
+      ...content.email.context,
+      openUrl,
+      clickUrl,
+      ctaUrl: (content.email.context?.ctaUrl as string | undefined) ?? content.url,
+      preferencesUrl:
+        (content.email.context?.preferencesUrl as string | undefined) ??
+        this.appendPath(this.baseUrl, '/settings/notifications'),
+      logoUrl:
+        (content.email.context?.logoUrl as string | undefined) ??
+        this.appendPath(this.baseUrl, '/icons/icon-192.png'),
+    }
+
+    let html: string
+    try {
+      html = await renderEmailTemplate({
+        locale: resolvedLocale,
+        variant: abVariant,
+        templateName: content.email.templateName,
+        context: emailContext,
+      })
+    } catch (error) {
+      this.logger.error('Failed to render email template', {
+        error,
+        locale: resolvedLocale,
+        userId: reminder.userId,
+        templateName: content.email.templateName,
+        variant: abVariant,
+      })
+      return
+    }
+
     try {
       await this.resendClient.emails.send({
         from: 'Finance App <notifications@finance-app.dev>',
         to: email,
         subject: content.email.subject,
-        html: content.email.html,
+        html,
         text: content.summary,
       })
     } catch (error) {
@@ -207,21 +278,68 @@ export class NotificationEngine {
       locale,
       cardId: reminder.cardId,
       budgetId: reminder.budgetId,
+      abVariant,
+      nid,
+      tracking: {
+        openUrl,
+        clickUrl,
+      },
     })
 
     await this.rememberNotificationKey(reminder, 'email')
+  }
+
+  private appendTrackingParams(
+    base: string,
+    params: Record<string, string | number | undefined>,
+  ): string {
+    const candidates = [base, this.appendPath(this.baseUrl, base)]
+
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue
+      }
+      try {
+        const url = new URL(candidate)
+        for (const [key, value] of Object.entries(params)) {
+          if (value === undefined || value === null) {
+            continue
+          }
+          url.searchParams.set(key, String(value))
+        }
+        return url.toString()
+      } catch {
+        continue
+      }
+    }
+
+    return base
+  }
+
+  private appendPath(base: string, path: string): string {
+    try {
+      return new URL(path, this.ensureTrailingSlash(base)).toString()
+    } catch {
+      return base
+    }
+  }
+
+  private ensureTrailingSlash(value: string): string {
+    return value.endsWith('/') ? value : `${value}/`
   }
 
   private composeDataPayload(
     reminder: ReminderEvent,
     locale: string,
     url: string,
+    abVariant: AbVariant,
   ): Record<string, string> {
     const data: Record<string, string> = {
       type: reminder.type,
       eventKey: reminder.eventKey,
       locale: resolveLocaleTag(locale),
       url,
+      variant: abVariant,
     }
     if (reminder.cardId) {
       data.cardId = reminder.cardId
@@ -331,8 +449,11 @@ export async function fetchUserLocale({
 export async function logNotificationRecord(
   firestore: FirebaseFirestore.Firestore,
   record: NotificationLogRecord,
-): Promise<void> {
-  await firestore.collection('notifications').add({
+): Promise<string> {
+  const collection = firestore.collection('notifications')
+  const docRef = record.nid ? collection.doc(record.nid) : collection.doc()
+
+  const payload: FirebaseFirestore.DocumentData = {
     userId: record.userId,
     type: record.type,
     message: record.message,
@@ -341,7 +462,20 @@ export async function logNotificationRecord(
     locale: resolveLocaleTag(record.locale),
     cardId: record.cardId ?? null,
     budgetId: record.budgetId ?? null,
+    nid: docRef.id,
+    abVariant: record.abVariant ?? null,
     read: false,
     sentAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
+  }
+
+  if (record.metadata) {
+    payload.metadata = record.metadata
+  }
+
+  if (record.tracking) {
+    payload.tracking = record.tracking
+  }
+
+  await docRef.set(payload, { merge: true })
+  return docRef.id
 }
