@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
-    "i18n:check": "node scripts/check-i18n.cjs"
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "firebase": "^12.3.0",

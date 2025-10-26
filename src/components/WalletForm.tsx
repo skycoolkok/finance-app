@@ -233,11 +233,18 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
           className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
         >
           <option value="">{t('wallets.form.placeholders.linkedCardNone')}</option>
-          {cards.map(card => (
-            <option key={card.id} value={card.id}>
-              {card.alias || card.issuer} ({card.issuer}@{card.last4})
-            </option>
-          ))}
+          {cards.map(card => {
+            const displayName = (card.alias ?? '').trim() || card.issuer
+            return (
+              <option key={card.id} value={card.id}>
+                {t('wallets.form.options.linkedCard', {
+                  name: displayName,
+                  issuer: card.issuer,
+                  last4: card.last4?.toString().slice(-4) ?? '0000',
+                })}
+              </option>
+            )
+          })}
         </select>
       </div>
 

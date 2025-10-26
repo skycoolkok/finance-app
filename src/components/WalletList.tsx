@@ -97,7 +97,10 @@ export default function WalletList({ userId, onEdit }: WalletListProps) {
                 <p className="text-base font-medium text-slate-100">{wallet.name}</p>
                 <p className="text-sm text-slate-500">
                   {linkedCard
-                    ? `${linkedCard.issuer}@${linkedCard.last4}`
+                    ? t('wallets.list.linkedCardLabel', {
+                        issuer: linkedCard.issuer,
+                        last4: linkedCard.last4?.toString().slice(-4) ?? '0000',
+                      })
                     : t('wallets.list.noLinkedCard')}
                 </p>
               </div>

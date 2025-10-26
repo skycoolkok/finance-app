@@ -328,13 +328,26 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
                     : t('transactions.form.fields.sourceType.options.wallet'),
               })}
             </option>
-            {availableSources.map(item => (
-              <option key={item.id} value={item.id}>
-                {'issuer' in item
-                  ? `${item.alias || item.issuer} (${item.issuer}@${item.last4})`
-                  : `${item.name}${item.isDefault ? ` • ${t('wallets.list.defaultBadge')}` : ''}`}
-              </option>
-            ))}
+            {availableSources.map(source => {
+              const label =
+                form.sourceType === 'card'
+                  ? t('transactions.form.fields.source.cardOption', {
+                      name: (source as Card).alias?.trim() || (source as Card).issuer,
+                      issuer: (source as Card).issuer,
+                      last4: (source as Card).last4?.toString().slice(-4) ?? '0000',
+                    })
+                    : t('transactions.form.fields.source.walletOption', {
+                        name: (source as Wallet).name,
+                        defaultLabel: (source as Wallet).isDefault
+                          ? ` (${t('wallets.list.defaultBadge')})`
+                          : '',
+                      })
+              return (
+                <option key={source.id} value={source.id}>
+                  {label}
+                </option>
+              )
+            })}
           </select>
         </div>
       </div>

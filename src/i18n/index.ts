@@ -3,13 +3,9 @@ import { initReactI18next } from 'react-i18next'
 
 import enCommon from './resources/en/common.json'
 import zhTwCommon from './resources/zh-TW/common.json'
-import {
-  FALLBACK_LOCALE,
-  AppLocale,
-  getCurrentLocale as getStoredLocale,
-  normalizeLocale,
-  setLocale,
-} from '../lib/locale'
+import { AppLocale, FALLBACK_LOCALE, normalizeLocale, setLocale } from '../lib/locale'
+
+const STORAGE_KEY = 'lang' as const
 
 const resources = {
   en: { common: enCommon },
@@ -17,13 +13,43 @@ const resources = {
 } as const
 
 const supportedLanguages = Object.keys(resources) as AppLocale[]
-const initialLanguage = getStoredLocale()
+
+function readStoredLanguage(): AppLocale | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    if (!stored) {
+      return null
+    }
+    return normalizeLocale(stored)
+  } catch {
+    return null
+  }
+}
+
+function persistLanguage(locale: AppLocale) {
+  setLocale(locale)
+}
 
 function applyDocumentLanguage(locale: AppLocale) {
   if (typeof document === 'undefined') {
     return
   }
   document.documentElement.lang = locale
+}
+
+const initialLanguage = readStoredLanguage() ?? FALLBACK_LOCALE
+
+function ensureLanguageSideEffects(language: string) {
+  const normalized = normalizeLocale(language)
+  if (normalized !== language) {
+    void i18next.changeLanguage(normalized)
+    return
+  }
+  applyDocumentLanguage(normalized)
+  persistLanguage(normalized)
 }
 
 if (!i18next.isInitialized) {
@@ -43,8 +69,7 @@ if (!i18next.isInitialized) {
       },
     })
     .then(() => {
-      applyDocumentLanguage(normalizeLocale(i18next.language))
-      setLocale(i18next.language)
+      ensureLanguageSideEffects(i18next.language)
     })
     .catch(error => {
       if (import.meta.env.DEV) {
@@ -52,8 +77,7 @@ if (!i18next.isInitialized) {
       }
     })
 } else {
-  applyDocumentLanguage(normalizeLocale(i18next.language))
-  setLocale(i18next.language)
+  ensureLanguageSideEffects(i18next.language)
 }
 
 const globalScope =
@@ -62,13 +86,7 @@ const listenerFlag = '__financeAppLanguageListener__'
 
 if (!globalScope[listenerFlag]) {
   i18next.on('languageChanged', language => {
-    const normalized = normalizeLocale(language)
-    if (language !== normalized) {
-      void i18next.changeLanguage(normalized)
-      return
-    }
-    applyDocumentLanguage(normalized)
-    setLocale(normalized)
+    ensureLanguageSideEffects(language)
   })
   globalScope[listenerFlag] = true
 }

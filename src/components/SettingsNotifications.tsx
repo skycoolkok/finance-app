@@ -170,7 +170,10 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
       </div>
 
       <p className="text-xs text-slate-500">
-        Locale: {currentLocale} | Currency: {currencyCode}
+        {t('notifications.settings.status.localeCurrency', {
+          locale: currentLocale,
+          currency: currencyCode,
+        })}
       </p>
 
       <div className="space-y-3">

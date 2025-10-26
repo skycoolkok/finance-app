@@ -2,7 +2,8 @@
   "language": {
     "label": "Language",
     "en": "English",
-    "zhTW": "繁體中文"
+    "zhTW": "Traditional Chinese",
+    "reset": "Reset Language"
   },
   "app": {
     "title": "Finance App",
@@ -113,6 +114,9 @@
         "createSuccess": "Wallet added!",
         "updateSuccess": "Wallet updated!",
         "saveError": "Error saving wallet"
+      },
+      "options": {
+        "linkedCard": "{{name}} ({{issuer}} ****{{last4}})"
       }
     },
     "list": {
@@ -128,7 +132,8 @@
         "confirmDelete": "Delete this wallet?",
         "deleteSuccess": "Wallet deleted",
         "deleteError": "Error deleting wallet"
-      }
+      },
+      "linkedCardLabel": "{{issuer}} ****{{last4}}"
     }
   },
   "transactions": {
@@ -158,7 +163,9 @@
             "card": "Card",
             "wallet": "Wallet"
           },
-          "placeholder": "Select {{type}}"
+          "placeholder": "Select {{type}}",
+          "cardOption": "{{name}} ({{issuer}} ****{{last4}})",
+          "walletOption": "{{name}}{{defaultLabel}}"
         },
         "note": {
           "label": "Note",
@@ -208,8 +215,8 @@
     },
     "types": {
       "due-reminder": "Due Reminder",
-      "utilization-80": "Utilization ≥80%",
-      "utilization-95": "Utilization ≥95%",
+      "utilization-80": "Utilization 80%+",
+      "utilization-95": "Utilization 95%+",
       "test-push": "Test Push",
       "test-email": "Test Email"
     },
@@ -259,6 +266,9 @@
         "localeSuccess": "Language preference updated to {{locale}}.",
         "localeAuthRequired": "Sign in to sync your language preference.",
         "noAccess": "Sign in to access notification tools."
+      },
+      "status": {
+        "localeCurrency": "Locale: {{locale}} | Currency: {{currency}}"
       }
     }
   },
@@ -268,5 +278,12 @@
       "delete": "Delete",
       "cancel": "Cancel"
     }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "cards": "Cards",
+    "wallets": "Wallets",
+    "transactions": "Transactions",
+    "notifications": "Notifications"
   }
 }

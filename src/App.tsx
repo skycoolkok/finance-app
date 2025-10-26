@@ -15,7 +15,7 @@ import { auth } from './firebase'
 import type { Card, Wallet } from './models/types'
 
 export default function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
@@ -27,6 +27,14 @@ export default function App() {
       console.error('FCM initialization failed', error)
     })
   }, [userId])
+
+  useEffect(() => {
+    // Quick visibility into active language during development
+    if (import.meta.env.DEV) {
+      console.log('[i18n] active language:', i18n.language)
+      console.log("[i18n] sample title:", t('app.title'))
+    }
+  }, [i18n.language, t])
 
   const handleEditCard = (card: Card) => {
     setEditingCard(card)

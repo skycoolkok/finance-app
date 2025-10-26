@@ -8,8 +8,20 @@ export type PreferenceChangeDetail =
 
 export const PREFERENCE_CHANGE_EVENT = 'app:pref-changed'
 
-const LOCALE_STORAGE_KEY = 'app:locale'
-const FALLBACK_LOCALE: AppLocale = 'en'
+const LOCALE_STORAGE_KEY = 'lang'
+const LEGACY_LOCALE_KEYS = ['app:locale'] as const
+const FALLBACK_LOCALE: AppLocale = 'zh-TW'
+
+const EN_VARIANTS = new Set([
+  'en',
+  'en-us',
+  'en_gb',
+  'en-gb',
+  'en-au',
+  'en_ca',
+  'en-ca',
+  'en-nz',
+])
 
 const ZH_VARIANTS = new Set([
   'zh',
@@ -46,7 +58,17 @@ function readStoredLocale(): string | null {
     return null
   }
   try {
-    return window.localStorage.getItem(LOCALE_STORAGE_KEY)
+    const explicit = window.localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (explicit) {
+      return explicit
+    }
+    for (const legacyKey of LEGACY_LOCALE_KEYS) {
+      const legacyValue = window.localStorage.getItem(legacyKey)
+      if (legacyValue) {
+        return legacyValue
+      }
+    }
+    return null
   } catch {
     return null
   }
@@ -66,6 +88,9 @@ function storeLocale(locale: AppLocale) {
   }
   try {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+    for (const legacyKey of LEGACY_LOCALE_KEYS) {
+      window.localStorage.removeItem(legacyKey)
+    }
   } catch {
     // ignore persistence failures (e.g. private mode)
   }
@@ -86,7 +111,11 @@ export function normalizeLocale(input: string | undefined): AppLocale {
     return 'zh-TW'
   }
 
-  return 'en'
+  if (EN_VARIANTS.has(lower) || lower.startsWith('en-')) {
+    return 'en'
+  }
+
+  return FALLBACK_LOCALE
 }
 
 export function getCurrentLocale(): AppLocale {
@@ -123,7 +152,8 @@ function subscribe(listener: () => void) {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', event => {
-    if (event.key !== LOCALE_STORAGE_KEY) {
+    const storageKey = event.key ?? ''
+    if (storageKey !== LOCALE_STORAGE_KEY && !LEGACY_LOCALE_KEYS.includes(storageKey)) {
       return
     }
     const nextLocale = normalizeLocale(event.newValue ?? undefined)
