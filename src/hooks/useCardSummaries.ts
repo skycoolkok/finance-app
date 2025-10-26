@@ -37,9 +37,9 @@ export function useCardSummaries(userId: string | null) {
       orderBy('alias'),
     )
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -66,9 +66,9 @@ export function useCardSummaries(userId: string | null) {
       orderBy('date', 'desc'),
     )
 
-    const unsubscribe = onSnapshot(txQuery, snapshot => {
+    const unsubscribe = onSnapshot(txQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -88,7 +88,7 @@ export function useCardSummaries(userId: string | null) {
 
     const today = new Date()
 
-    const summaries = cards.map(card => {
+    const summaries = cards.map((card) => {
       const cycle = computeCycle(today, card.statementDay)
       const nextCycleAnchor = new Date(cycle.end)
       nextCycleAnchor.setDate(nextCycleAnchor.getDate() + 1)

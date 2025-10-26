@@ -38,6 +38,6 @@ function getFunctionsInstance() {
 
 export const functions = getFunctionsInstance()
 
-export const messagingPromise: Promise<Messaging | null> = isSupported().then(supported =>
+export const messagingPromise: Promise<Messaging | null> = isSupported().then((supported) =>
   supported ? getMessaging(app) : null,
 )

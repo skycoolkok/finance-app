@@ -30,7 +30,7 @@ export function LanguageSwitcher() {
     let cancelled = false
     navigator.serviceWorker
       .getRegistrations()
-      .then(registrations => {
+      .then((registrations) => {
         if (!cancelled) {
           setHasServiceWorker(registrations.length > 0)
         }
@@ -105,7 +105,7 @@ export function LanguageSwitcher() {
     if (hasServiceWorker && typeof navigator !== 'undefined' && navigator.serviceWorker) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations()
-        await Promise.all(registrations.map(registration => registration.unregister()))
+        await Promise.all(registrations.map((registration) => registration.unregister()))
       } catch (error) {
         if (import.meta.env.DEV) {
           console.warn('Service worker unregister failed', error)
@@ -127,7 +127,7 @@ export function LanguageSwitcher() {
         onChange={handleChange}
         className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-200"
       >
-        {LANGUAGE_OPTIONS.map(option => (
+        {LANGUAGE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {t(option.labelKey)}
           </option>

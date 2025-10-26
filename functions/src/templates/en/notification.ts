@@ -1,15 +1,9 @@
-import type {
-  BudgetAlertInput,
-  DueReminderInput,
-  NotificationContent,
-  NotificationTemplates,
-  UtilizationAlertInput,
-} from '../types'
+import type { DueReminderInput, NotificationContent, NotificationTemplates } from '../types'
 
 const CURRENCY = 'USD'
 
 const templates: NotificationTemplates = {
-  dueReminder: input => {
+  dueReminder: (input) => {
     const url = resolveUrl(input.baseUrl, '/cards')
     const amount = formatCurrency(input.amount)
     const dueDate = formatDate(input.dueDate)
@@ -20,17 +14,13 @@ const templates: NotificationTemplates = {
       subject,
       summary,
       url,
-      facts: [
-        `Card: ${input.cardLabel}`,
-        `Due date: ${dueDate}`,
-        `Balance: ${amount}`,
-      ],
+      facts: [`Card: ${input.cardLabel}`, `Due date: ${dueDate}`, `Balance: ${amount}`],
       ctaText: 'Review card activity',
       baseUrl: input.baseUrl,
     })
   },
 
-  utilizationAlert: input => {
+  utilizationAlert: (input) => {
     const url = resolveUrl(input.baseUrl, '/cards')
     const percent = Math.round(input.utilization * 100)
     const limit = formatCurrency(input.limit)
@@ -44,17 +34,13 @@ const templates: NotificationTemplates = {
       subject,
       summary,
       url,
-      facts: [
-        `Card: ${input.cardLabel}`,
-        `Current balance: ${amount}`,
-        `Credit limit: ${limit}`,
-      ],
+      facts: [`Card: ${input.cardLabel}`, `Current balance: ${amount}`, `Credit limit: ${limit}`],
       ctaText: 'Open cards dashboard',
       baseUrl: input.baseUrl,
     })
   },
 
-  budgetAlert: input => {
+  budgetAlert: (input) => {
     const url = resolveUrl(input.baseUrl, '/budgets')
     const spent = formatCurrency(input.spent)
     const limit = formatCurrency(input.limit)
@@ -72,11 +58,7 @@ const templates: NotificationTemplates = {
       subject,
       summary,
       url,
-      facts: [
-        `Budget: ${input.budgetLabel}`,
-        `Spent: ${spent}`,
-        `Limit: ${limit}`,
-      ],
+      facts: [`Budget: ${input.budgetLabel}`, `Spent: ${spent}`, `Limit: ${limit}`],
       ctaText: 'Review budget details',
       baseUrl: input.baseUrl,
     })

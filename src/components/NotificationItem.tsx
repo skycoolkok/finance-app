@@ -72,7 +72,7 @@ function typeLabel(type: string, t: TFunction<'common'>) {
   if (translated !== key) {
     return translated
   }
-  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function typeColor(type: string) {

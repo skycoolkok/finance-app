@@ -32,9 +32,9 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
       orderBy('alias'),
     )
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -63,9 +63,9 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
       orderBy('name'),
     )
 
-    const unsubscribe = onSnapshot(walletsQuery, snapshot => {
+    const unsubscribe = onSnapshot(walletsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -95,9 +95,9 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
       orderBy('date', 'desc'),
     )
 
-    const unsubscribe = onSnapshot(txQuery, snapshot => {
+    const unsubscribe = onSnapshot(txQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -112,7 +112,7 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
   }, [userId, onTransactionsChange])
 
   const enrichedTransactions = useMemo(() => {
-    return transactions.map(tx => {
+    return transactions.map((tx) => {
       const card = tx.cardId ? cardsById[tx.cardId] : undefined
       const sourceName =
         tx.sourceType === 'card'
@@ -134,7 +134,7 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
         <p className="text-sm text-slate-500">{t('transactions.list.empty')}</p>
       )}
       <ul className="space-y-2">
-        {enrichedTransactions.map(tx => (
+        {enrichedTransactions.map((tx) => (
           <li
             key={tx.id}
             className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 bg-slate-950/60 p-3"
@@ -155,7 +155,7 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
               </p>
               {tx.note && <p className="mt-1 text-xs text-slate-400">{tx.note}</p>}
             </div>
-              <div className="text-right">
+            <div className="text-right">
               <p className="text-base font-semibold text-emerald-400">
                 {formatMoney(tx.amount, { locale, currency: currencyCode })}
               </p>

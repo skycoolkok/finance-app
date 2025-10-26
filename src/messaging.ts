@@ -73,7 +73,7 @@ async function bindForegroundMessaging(messaging: Messaging) {
     return
   }
 
-  onMessage(messaging, payload => {
+  onMessage(messaging, (payload) => {
     console.info('Foreground notification received', payload)
     // TODO: display UI feedback (toast / modal) here if desired
   })

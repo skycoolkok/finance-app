@@ -23,7 +23,7 @@ export default function App() {
   const userId = auth.currentUser?.uid ?? 'demo-user'
 
   useEffect(() => {
-    initFcmAndRegister(userId).catch(error => {
+    initFcmAndRegister(userId).catch((error) => {
       console.error('FCM initialization failed', error)
     })
   }, [userId])
@@ -32,7 +32,7 @@ export default function App() {
     // Quick visibility into active language during development
     if (import.meta.env.DEV) {
       console.log('[i18n] active language:', i18n.language)
-      console.log("[i18n] sample title:", t('app.title'))
+      console.log('[i18n] sample title:', t('app.title'))
     }
   }, [i18n.language, t])
 

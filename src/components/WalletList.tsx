@@ -22,9 +22,9 @@ export default function WalletList({ userId, onEdit }: WalletListProps) {
 
     const cardsQuery = query(collection(db, 'cards'), where('userId', '==', userId))
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        cardDoc =>
+        (cardDoc) =>
           ({
             id: cardDoc.id,
             ...cardDoc.data(),
@@ -50,9 +50,9 @@ export default function WalletList({ userId, onEdit }: WalletListProps) {
 
     const walletsQuery = query(collection(db, 'wallets'), where('userId', '==', userId))
 
-    const unsubscribe = onSnapshot(walletsQuery, snapshot => {
+    const unsubscribe = onSnapshot(walletsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        walletDoc =>
+        (walletDoc) =>
           ({
             id: walletDoc.id,
             ...walletDoc.data(),
@@ -84,7 +84,7 @@ export default function WalletList({ userId, onEdit }: WalletListProps) {
     <div className="space-y-3 rounded border border-slate-800 bg-slate-900/30 p-4 shadow">
       <h3 className="text-lg font-semibold text-slate-100">{t('wallets.list.title')}</h3>
       {wallets.length === 0 && <p className="text-sm text-slate-500">{t('wallets.list.empty')}</p>}
-      {wallets.map(wallet => {
+      {wallets.map((wallet) => {
         const linkedCard = wallet.linkedCardId ? cardsById[wallet.linkedCardId] : undefined
 
         return (

@@ -1,5 +1,8 @@
 node_modules
-coverage
 dist
+.vercel
 functions/lib
-*.log
+**/*.min.js
+public/firebase-messaging-sw.js
+functions/showconfig.json
+pr-test.js

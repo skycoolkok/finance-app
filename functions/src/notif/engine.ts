@@ -361,7 +361,7 @@ export class NotificationEngine {
       .get()
 
     const tokens = snapshot.docs
-      .map(docSnapshot => docSnapshot.data().token as string | undefined)
+      .map((docSnapshot) => docSnapshot.data().token as string | undefined)
       .filter((token): token is string => typeof token === 'string' && token.length > 0)
 
     this.tokenCache.set(userId, tokens)

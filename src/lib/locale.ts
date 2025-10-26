@@ -12,16 +12,7 @@ const LOCALE_STORAGE_KEY = 'lang'
 const LEGACY_LOCALE_KEYS = ['app:locale'] as const
 const FALLBACK_LOCALE: AppLocale = 'zh-TW'
 
-const EN_VARIANTS = new Set([
-  'en',
-  'en-us',
-  'en_gb',
-  'en-gb',
-  'en-au',
-  'en_ca',
-  'en-ca',
-  'en-nz',
-])
+const EN_VARIANTS = new Set(['en', 'en-us', 'en_gb', 'en-gb', 'en-au', 'en_ca', 'en-ca', 'en-nz'])
 
 const ZH_VARIANTS = new Set([
   'zh',
@@ -37,7 +28,7 @@ let cachedLocale: AppLocale | null = null
 const listeners = new Set<() => void>()
 
 function notifyListeners() {
-  listeners.forEach(listener => {
+  listeners.forEach((listener) => {
     listener()
   })
 }
@@ -151,7 +142,7 @@ function subscribe(listener: () => void) {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', event => {
+  window.addEventListener('storage', (event) => {
     const storageKey = event.key ?? ''
     if (storageKey !== LOCALE_STORAGE_KEY && !LEGACY_LOCALE_KEYS.includes(storageKey)) {
       return
@@ -164,7 +155,7 @@ if (typeof window !== 'undefined') {
     notifyListeners()
   })
 
-  window.addEventListener(PREFERENCE_CHANGE_EVENT, event => {
+  window.addEventListener(PREFERENCE_CHANGE_EVENT, (event) => {
     const custom = event as CustomEvent<PreferenceChangeDetail>
     if (custom.detail?.type !== 'locale') {
       return

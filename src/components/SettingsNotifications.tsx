@@ -139,16 +139,14 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           id="language-select"
           className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
           value={currentLocale}
-          onChange={event => {
+          onChange={(event) => {
             void handleLanguageChange(event)
           }}
         >
           <option value="en">{t('notifications.settings.language.options.en')}</option>
           <option value="zh-TW">{t('notifications.settings.language.options.zhTW')}</option>
         </select>
-        <p className="text-xs text-slate-500">
-          {t('notifications.settings.language.description')}
-        </p>
+        <p className="text-xs text-slate-500">{t('notifications.settings.language.description')}</p>
       </div>
 
       <div className="space-y-2 rounded border border-slate-800 bg-slate-950/60 p-4">
@@ -164,9 +162,7 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
           <option value="USD">{t('notifications.settings.currency.options.USD')}</option>
           <option value="TWD">{t('notifications.settings.currency.options.TWD')}</option>
         </select>
-        <p className="text-xs text-slate-500">
-          {t('notifications.settings.currency.description')}
-        </p>
+        <p className="text-xs text-slate-500">{t('notifications.settings.currency.description')}</p>
       </div>
 
       <p className="text-xs text-slate-500">
@@ -223,4 +219,3 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
 }
 
 export default SettingsNotifications
-

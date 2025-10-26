@@ -34,7 +34,7 @@ const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
 // -------------------------------
 // Ping：健康檢查/測路徑/看環境
 // -------------------------------
-export const ping = onCall(async request => {
+export const ping = onCall(async (request) => {
   return {
     ok: true,
     echo: request.data ?? null,
@@ -72,7 +72,7 @@ export const sendTestPush = onCall<{ userId?: string }>(async ({ data }) => {
 // -------------------------------------------------------
 type RegisterTokenData = { token: string; userId?: string }
 
-export const registerToken = onCall<RegisterTokenData>(async request => {
+export const registerToken = onCall<RegisterTokenData>(async (request) => {
   const token = (request.data?.token ?? '').toString().trim()
   const userId = (request.data?.userId ?? request.auth?.uid ?? '').toString() || null
 

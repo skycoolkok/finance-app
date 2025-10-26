@@ -129,11 +129,11 @@ export function useNotifications(
 
         const newNotifications = snapshot.docs.map(mapNotification)
 
-        setNotifications(prev => (reset ? newNotifications : [...prev, ...newNotifications]))
+        setNotifications((prev) => (reset ? newNotifications : [...prev, ...newNotifications]))
         setHasMore(snapshot.docs.length === pageSize)
-        setAvailableTypes(prev => {
+        setAvailableTypes((prev) => {
           const base = new Set<string>(reset ? [] : prev)
-          newNotifications.forEach(item => base.add(item.type))
+          newNotifications.forEach((item) => base.add(item.type))
           return Array.from(base).sort()
         })
       } catch (fetchError) {
@@ -156,7 +156,7 @@ export function useNotifications(
     }
 
     resetPagination()
-    fetchPage(true).catch(err => {
+    fetchPage(true).catch((err) => {
       setError(err instanceof Error ? err.message : String(err))
     })
   }, [fetchPage, resetPagination, userId, filterType])
@@ -169,8 +169,8 @@ export function useNotifications(
 
       await updateDoc(doc(db, 'notifications', notificationId), { read: true })
 
-      setNotifications(prev =>
-        prev.map(item => (item.id === notificationId ? { ...item, read: true } : item)),
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === notificationId ? { ...item, read: true } : item)),
       )
     },
     [userId],
@@ -194,15 +194,15 @@ export function useNotifications(
     }
 
     const batch = writeBatch(db)
-    unreadSnapshot.docs.forEach(docSnapshot => {
+    unreadSnapshot.docs.forEach((docSnapshot) => {
       batch.update(docSnapshot.ref, { read: true })
     })
 
     await batch.commit()
 
-    const updatedIds = new Set(unreadSnapshot.docs.map(docSnapshot => docSnapshot.id))
-    setNotifications(prev =>
-      prev.map(item => (updatedIds.has(item.id) ? { ...item, read: true } : item)),
+    const updatedIds = new Set(unreadSnapshot.docs.map((docSnapshot) => docSnapshot.id))
+    setNotifications((prev) =>
+      prev.map((item) => (updatedIds.has(item.id) ? { ...item, read: true } : item)),
     )
 
     return updatedIds.size
@@ -222,7 +222,7 @@ export function useNotifications(
   }, [fetchPage, resetPagination])
 
   const unreadCount = useMemo(
-    () => notifications.filter(item => !item.read).length,
+    () => notifications.filter((item) => !item.read).length,
     [notifications],
   )
 

@@ -67,7 +67,7 @@ function deriveCurrencyFromLocale(locale: AppLocale): Currency {
 }
 
 function notifyCurrencySubscribers() {
-  listeners.forEach(listener => {
+  listeners.forEach((listener) => {
     listener()
   })
 }
@@ -97,7 +97,7 @@ function subscribe(listener: () => void) {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', event => {
+  window.addEventListener('storage', (event) => {
     if (event.key !== CURRENCY_STORAGE_KEY) {
       return
     }
@@ -109,7 +109,7 @@ if (typeof window !== 'undefined') {
     notifyCurrencySubscribers()
   })
 
-  window.addEventListener(PREFERENCE_CHANGE_EVENT, event => {
+  window.addEventListener(PREFERENCE_CHANGE_EVENT, (event) => {
     const custom = event as CustomEvent<PreferenceChangeDetail>
     if (custom.detail?.type !== 'currency') {
       return

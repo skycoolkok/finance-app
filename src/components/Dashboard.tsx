@@ -42,7 +42,7 @@ export function Dashboard({ userId }: DashboardProps) {
         <p className="text-sm text-slate-500">{t('dashboard.empty')}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {summaries.map(summary => (
+          {summaries.map((summary) => (
             <CardSummary key={summary.card.id} summary={summary} />
           ))}
         </div>

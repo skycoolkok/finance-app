@@ -10,14 +10,9 @@
     "strict": true,
     "skipLibCheck": true,
 
-    "types": [],                         // 不引用上層的 jest 型別
+    "types": [], // 不引用上層的 jest 型別
     "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["src/**/*.ts"],            // 明確告訴 TS 要編哪些檔
-  "exclude": [
-    "node_modules",
-    "lib",
-    "**/*.spec.ts",
-    "**/*.test.ts"
-  ]
+  "include": ["src/**/*.ts"], // 明確告訴 TS 要編哪些檔
+  "exclude": ["node_modules", "lib", "**/*.spec.ts", "**/*.test.ts"]
 }

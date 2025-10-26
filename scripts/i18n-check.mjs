@@ -7,7 +7,7 @@ const localesDir = path.join(srcDir, 'i18n', 'resources')
 const targetLocales = ['en', 'zh-TW']
 
 function isTranslationFile(filePath) {
-  return targetLocales.some(locale => filePath.endsWith(path.join(locale, 'common.json')))
+  return targetLocales.some((locale) => filePath.endsWith(path.join(locale, 'common.json')))
 }
 
 async function readJson(filePath) {
@@ -62,7 +62,7 @@ function extractTranslationKeys(source) {
 }
 
 function hasPath(resource, keyPath) {
-  return keyPath.split('.').every(part => {
+  return keyPath.split('.').every((part) => {
     if (resource && Object.prototype.hasOwnProperty.call(resource, part)) {
       resource = resource[part]
       return true
@@ -74,7 +74,7 @@ function hasPath(resource, keyPath) {
 async function collectUsedKeys() {
   const files = await walkFiles(
     srcDir,
-    name => (name.endsWith('.tsx') || (name.endsWith('.ts') && !name.endsWith('.d.ts')))
+    (name) => name.endsWith('.tsx') || (name.endsWith('.ts') && !name.endsWith('.d.ts')),
   )
   const collected = new Set()
   for (const file of files) {
@@ -100,7 +100,7 @@ for (const locale of targetLocales) {
   }
 }
 
-const hasMissing = targetLocales.some(locale => missing[locale].length > 0)
+const hasMissing = targetLocales.some((locale) => missing[locale].length > 0)
 
 if (hasMissing) {
   for (const locale of targetLocales) {
@@ -108,7 +108,7 @@ if (hasMissing) {
       continue
     }
     console.error(`Missing ${locale} translations:`)
-    missing[locale].sort().forEach(key => {
+    missing[locale].sort().forEach((key) => {
       console.error(`  - ${key}`)
     })
   }

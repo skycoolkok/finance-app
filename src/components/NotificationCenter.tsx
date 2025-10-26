@@ -53,11 +53,11 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={filterType}
-            onChange={event => setFilterType(event.target.value)}
+            onChange={(event) => setFilterType(event.target.value)}
             className="rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
           >
             <option value="all">{t('notifications.center.filters.all')}</option>
-            {availableTypes.map(type => (
+            {availableTypes.map((type) => (
               <option key={type} value={type}>
                 {typeLabel(type, t)}
               </option>
@@ -96,7 +96,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
         <p className="text-sm text-slate-500">{t('notifications.center.empty')}</p>
       ) : (
         <ul className="space-y-3">
-          {notifications.map(notification => (
+          {notifications.map((notification) => (
             <NotificationItem
               key={notification.id}
               notification={notification}
@@ -132,7 +132,7 @@ function typeLabel(type: string, t: TFunction<'common'>) {
   if (translated !== key) {
     return translated
   }
-  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 export default NotificationCenter

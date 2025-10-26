@@ -71,7 +71,7 @@ if (!i18next.isInitialized) {
     .then(() => {
       ensureLanguageSideEffects(i18next.language)
     })
-    .catch(error => {
+    .catch((error) => {
       if (import.meta.env.DEV) {
         console.error('Failed to initialise i18next', error)
       }
@@ -85,7 +85,7 @@ const globalScope =
 const listenerFlag = '__financeAppLanguageListener__'
 
 if (!globalScope[listenerFlag]) {
-  i18next.on('languageChanged', language => {
+  i18next.on('languageChanged', (language) => {
     ensureLanguageSideEffects(language)
   })
   globalScope[listenerFlag] = true

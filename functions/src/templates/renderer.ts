@@ -61,7 +61,7 @@ function renderFromCache(entry: CacheEntry, context: Record<string, unknown>): s
     })
     if (result.errors?.length) {
       throw new Error(
-        `MJML render failed: ${result.errors.map(error => error.formattedMessage).join('; ')}`,
+        `MJML render failed: ${result.errors.map((error) => error.formattedMessage).join('; ')}`,
       )
     }
     return result.html

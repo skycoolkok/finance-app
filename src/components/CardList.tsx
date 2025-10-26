@@ -29,9 +29,9 @@ export default function CardList({ userId, onEdit }: CardListProps) {
       orderBy('alias'),
     )
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        item =>
+        (item) =>
           ({
             id: item.id,
             ...item.data(),
@@ -58,7 +58,7 @@ export default function CardList({ userId, onEdit }: CardListProps) {
     <div className="space-y-2 p-4">
       <h2 className="text-lg font-bold">{t('cards.list.title')}</h2>
       {cards.length === 0 && <p className="text-sm text-slate-500">{t('cards.list.empty')}</p>}
-      {cards.map(card => (
+      {cards.map((card) => (
         <div
           key={card.id}
           className="flex flex-wrap items-center justify-between gap-4 rounded border p-3 shadow"

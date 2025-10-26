@@ -2,32 +2,48 @@
   <mj-body background-color="#f8fafc">
     <mj-section background-color="#0f172a" padding="0">
       <mj-column>
-        <mj-image width="32px" height="32px" align="left" padding="20px 24px 0 24px" src="{{logoUrl}}" alt="Finance App" />
+        <mj-image
+          width="32px"
+          height="32px"
+          align="left"
+          padding="20px 24px 0 24px"
+          src="{{logoUrl}}"
+          alt="Finance App"
+        />
       </mj-column>
     </mj-section>
     <mj-section background-color="#ffffff" padding="24px">
       <mj-column>
-        <mj-text font-size="22px" font-weight="600" color="#0f172a" padding-bottom="12px">{{heading}}</mj-text>
+        <mj-text font-size="22px" font-weight="600" color="#0f172a" padding-bottom="12px">{{
+          heading
+        }}</mj-text>
         <mj-text font-size="14px" line-height="1.6" color="#334155" padding-bottom="16px">
-          {{intro}}
+          {{ intro }}
         </mj-text>
         {{#if facts}}
-          <mj-text color="#1e293b" font-size="14px" padding-bottom="20px">
-            <ul style="padding-left:20px; margin:0;">
-              {{#each facts}}
-                <li style="margin-bottom:6px;">{{this}}</li>
-              {{/each}}
-            </ul>
-          </mj-text>
+        <mj-text color="#1e293b" font-size="14px" padding-bottom="20px">
+          <ul style="padding-left: 20px; margin: 0">
+            {{#each facts}}
+            <li style="margin-bottom: 6px">{{ this }}</li>
+            {{/each}}
+          </ul>
+        </mj-text>
         {{/if}}
         {{#if ctaText}}
-          <mj-button background-color="#0ea5e9" color="#ffffff" font-size="14px" font-weight="600" href="{{clickUrl}}" padding="0 0 20px 0">
-            {{ctaText}}
-          </mj-button>
+        <mj-button
+          background-color="#0ea5e9"
+          color="#ffffff"
+          font-size="14px"
+          font-weight="600"
+          href="{{clickUrl}}"
+          padding="0 0 20px 0"
+        >
+          {{ ctaText }}
+        </mj-button>
         {{/if}}
         <mj-text font-size="12px" color="#64748b">
           If the button does not work, copy and paste this link into your browser:<br />
-          <a href="{{ctaUrl}}" style="color:#0ea5e9;">{{ctaUrl}}</a>
+          <a href="{{ctaUrl}}" style="color: #0ea5e9">{{ ctaUrl }}</a>
         </mj-text>
       </mj-column>
     </mj-section>
@@ -35,12 +51,10 @@
       <mj-column>
         <mj-text font-size="11px" color="#cbd5f5">
           You are receiving this message because notifications are enabled in Finance App.<br />
-          <a href="{{preferencesUrl}}" style="color:#38bdf8;">Manage preferences</a>
+          <a href="{{preferencesUrl}}" style="color: #38bdf8">Manage preferences</a>
         </mj-text>
       </mj-column>
     </mj-section>
-    <mj-raw>
-      <img src="{{openUrl}}" width="1" height="1" style="display:none;" alt="" />
-    </mj-raw>
+    <mj-raw> <img src="{{ openUrl }}" width="1" height="1" style="display:none;" alt="" /> </mj-raw>
   </mj-body>
 </mjml>

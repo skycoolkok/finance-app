@@ -4,7 +4,7 @@ const dotenv = require('dotenv')
 
 const envFiles = [path.resolve(__dirname, '../.env.local'), path.resolve(__dirname, '../.env')]
 
-envFiles.forEach(file => {
+envFiles.forEach((file) => {
   if (fs.existsSync(file)) {
     dotenv.config({ path: file, override: false })
   }
@@ -20,7 +20,7 @@ const requiredKeys = [
 ]
 
 function ensureConfig() {
-  const missing = requiredKeys.filter(key => !process.env[key])
+  const missing = requiredKeys.filter((key) => !process.env[key])
   if (missing.length > 0) {
     throw new Error(
       `Missing required Firebase environment variables: ${missing.join(', ')}. ` +

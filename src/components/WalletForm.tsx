@@ -54,9 +54,9 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
       orderBy('alias'),
     )
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        cardDoc =>
+        (cardDoc) =>
           ({
             id: cardDoc.id,
             ...cardDoc.data(),
@@ -85,7 +85,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [name]: value,
     }))
@@ -93,7 +93,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
 
   const handleSelectChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { value } = event.target
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       linkedCardId: value,
     }))
@@ -101,7 +101,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
 
   const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { checked } = event.target
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       isDefault: checked,
     }))
@@ -109,7 +109,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
 
   const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { value } = event.target
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       note: value,
     }))
@@ -139,7 +139,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
     const batch = writeBatch(db)
     let hasUpdates = false
 
-    snapshot.forEach(walletDoc => {
+    snapshot.forEach((walletDoc) => {
       if (walletDoc.id === existingWallet?.id) {
         return
       }
@@ -233,7 +233,7 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
           className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-slate-100"
         >
           <option value="">{t('wallets.form.placeholders.linkedCardNone')}</option>
-          {cards.map(card => {
+          {cards.map((card) => {
             const displayName = (card.alias ?? '').trim() || card.issuer
             return (
               <option key={card.id} value={card.id}>

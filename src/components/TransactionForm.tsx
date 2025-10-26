@@ -48,9 +48,9 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       orderBy('alias'),
     )
 
-    const unsubscribe = onSnapshot(cardsQuery, snapshot => {
+    const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -74,9 +74,9 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
       orderBy('name'),
     )
 
-    const unsubscribe = onSnapshot(walletsQuery, snapshot => {
+    const unsubscribe = onSnapshot(walletsQuery, (snapshot) => {
       const data = snapshot.docs.map(
-        doc =>
+        (doc) =>
           ({
             id: doc.id,
             ...doc.data(),
@@ -89,13 +89,13 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
   }, [userId])
 
   useEffect(() => {
-    setForm(prev => {
+    setForm((prev) => {
       const sources = prev.sourceType === 'card' ? cards : wallets
       if (sources.length === 0) {
         return { ...prev, sourceId: '' }
       }
 
-      const exists = sources.some(item => item.id === prev.sourceId)
+      const exists = sources.some((item) => item.id === prev.sourceId)
       if (exists) {
         return prev
       }
@@ -115,14 +115,14 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
     const { name, value, type } = event.target
 
     if (type === 'checkbox' && 'checked' in event.target) {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         [name]: (event.target as HTMLInputElement).checked,
       }))
       return
     }
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [name]: value,
     }))
@@ -132,7 +132,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
     const nextType = event.target.value as 'card' | 'wallet'
     const sources = nextType === 'card' ? cards : wallets
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       sourceType: nextType,
       sourceId: sources.length > 0 ? sources[0].id : '',
@@ -141,14 +141,14 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
 
   const handleSourceIdChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { value } = event.target
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       sourceId: value,
     }))
   }
 
   const resetForm = () => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...INITIAL_STATE,
       date: new Date().toISOString().slice(0, 10),
       sourceType: prev.sourceType,
@@ -180,7 +180,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
         if (form.sourceType === 'card') {
           return form.sourceId
         }
-        const wallet = wallets.find(item => item.id === form.sourceId)
+        const wallet = wallets.find((item) => item.id === form.sourceId)
         return wallet?.linkedCardId ?? null
       })()
 
@@ -328,7 +328,7 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
                     : t('transactions.form.fields.sourceType.options.wallet'),
               })}
             </option>
-            {availableSources.map(source => {
+            {availableSources.map((source) => {
               const label =
                 form.sourceType === 'card'
                   ? t('transactions.form.fields.source.cardOption', {
@@ -336,12 +336,12 @@ export default function TransactionForm({ userId }: TransactionFormProps) {
                       issuer: (source as Card).issuer,
                       last4: (source as Card).last4?.toString().slice(-4) ?? '0000',
                     })
-                    : t('transactions.form.fields.source.walletOption', {
-                        name: (source as Wallet).name,
-                        defaultLabel: (source as Wallet).isDefault
-                          ? ` (${t('wallets.list.defaultBadge')})`
-                          : '',
-                      })
+                  : t('transactions.form.fields.source.walletOption', {
+                      name: (source as Wallet).name,
+                      defaultLabel: (source as Wallet).isDefault
+                        ? ` (${t('wallets.list.defaultBadge')})`
+                        : '',
+                    })
               return (
                 <option key={source.id} value={source.id}>
                   {label}

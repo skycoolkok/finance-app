@@ -14,17 +14,8 @@ import {
 import { getAppBaseUrl } from './notif/env'
 import { sendBudgetAlert } from './notif/budgetEngine'
 import { sanitizeForKey } from './notif/utils'
-import {
-  TEST_EMAIL_SUBJECT,
-  buildTestEmailHtml,
-  buildTestEmailText,
-  sendMail,
-} from './mailer'
-import {
-  RESEND_API_KEY,
-  MissingResendApiKeyError,
-  getResendClientOrNull,
-} from './resendClient'
+import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
+import { RESEND_API_KEY, MissingResendApiKeyError, getResendClientOrNull } from './resendClient'
 import { resolveLocaleTag } from './templates'
 import { sendTestEmailGet } from './testMail'
 
@@ -57,109 +48,98 @@ const firestore = admin.firestore()
 const messaging = admin.messaging()
 const APP_BASE_URL = getAppBaseUrl()
 
-export const registerToken = onCall<
-  { token?: string; userId?: string; platform?: string } | null
->(HTTPS_OPTIONS, async request => {
-  const token = typeof request.data?.token === 'string' ? request.data.token.trim() : ''
-  if (!token) {
-    throw new HttpsError('invalid-argument', 'token is required')
-  }
+export const registerToken = onCall<{ token?: string; userId?: string; platform?: string } | null>(
+  HTTPS_OPTIONS,
+  async (request) => {
+    const token = typeof request.data?.token === 'string' ? request.data.token.trim() : ''
+    if (!token) {
+      throw new HttpsError('invalid-argument', 'token is required')
+    }
 
+    const userId =
+      request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
+    if (!userId) {
+      throw new HttpsError('failed-precondition', 'Authentication is required to register a token')
+    }
+
+    const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown'
+    const sanitizedId = sanitizeForKey(`${userId}:${token}`)
+    const tokenRef = firestore.collection('user_tokens').doc(sanitizedId)
+
+    await firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(tokenRef)
+      const timestamp = admin.firestore.FieldValue.serverTimestamp()
+
+      if (snapshot.exists) {
+        tx.update(tokenRef, {
+          token,
+          userId,
+          platform,
+          updatedAt: timestamp,
+        })
+      } else {
+        tx.set(tokenRef, {
+          token,
+          userId,
+          platform,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+      }
+    })
+
+    return { token }
+  },
+)
+
+export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, async (request) => {
   const userId =
     request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
   if (!userId) {
     throw new HttpsError(
       'failed-precondition',
-      'Authentication is required to register a token',
+      'Authentication is required to send a test push notification',
     )
   }
 
-  const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown'
-  const sanitizedId = sanitizeForKey(`${userId}:${token}`)
-  const tokenRef = firestore.collection('user_tokens').doc(sanitizedId)
+  const tokens = await fetchUserTokens(userId)
+  if (tokens.length === 0) {
+    throw new HttpsError('failed-precondition', 'No device tokens registered for this user')
+  }
 
-  await firestore.runTransaction(async tx => {
-    const snapshot = await tx.get(tokenRef)
-    const timestamp = admin.firestore.FieldValue.serverTimestamp()
-
-    if (snapshot.exists) {
-      tx.update(tokenRef, {
-        token,
-        userId,
-        platform,
-        updatedAt: timestamp,
-      })
-    } else {
-      tx.set(tokenRef, {
-        token,
-        userId,
-        platform,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
-    }
+  const locale = await fetchUserLocale({ firestore, userId })
+  const response = await messaging.sendEachForMulticast({
+    tokens,
+    notification: {
+      title: 'Finance App',
+      body: 'Test push notification from Finance App.',
+    },
+    data: {
+      type: 'test-push',
+      url: APP_BASE_URL,
+      locale,
+    },
   })
 
-  return { token }
+  await logNotificationRecord(firestore, {
+    userId,
+    type: 'test-push',
+    message: 'Test push notification dispatched.',
+    channel: 'push',
+    eventKey: 'test-push',
+    locale,
+  })
+
+  return { successCount: response.successCount, failureCount: response.failureCount }
 })
-
-export const sendTestPush = onCall<{ userId?: string } | null>(
-  HTTPS_OPTIONS,
-  async request => {
-    const userId =
-      request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
-    if (!userId) {
-      throw new HttpsError(
-        'failed-precondition',
-        'Authentication is required to send a test push notification',
-      )
-    }
-
-    const tokens = await fetchUserTokens(userId)
-    if (tokens.length === 0) {
-      throw new HttpsError(
-        'failed-precondition',
-        'No device tokens registered for this user',
-      )
-    }
-
-    const locale = await fetchUserLocale({ firestore, userId })
-    const response = await messaging.sendEachForMulticast({
-      tokens,
-      notification: {
-        title: 'Finance App',
-        body: 'Test push notification from Finance App.',
-      },
-      data: {
-        type: 'test-push',
-        url: APP_BASE_URL,
-        locale,
-      },
-    })
-
-    await logNotificationRecord(firestore, {
-      userId,
-      type: 'test-push',
-      message: 'Test push notification dispatched.',
-      channel: 'push',
-      eventKey: 'test-push',
-      locale,
-    })
-
-    return { successCount: response.successCount, failureCount: response.failureCount }
-  },
-)
 
 export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
   HTTPS_OPTIONS,
-  async request => {
+  async (request) => {
     const userId =
       request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
     if (!userId) {
-      throw new HttpsError(
-        'failed-precondition',
-        'Authentication is required to send a test email',
-      )
+      throw new HttpsError('failed-precondition', 'Authentication is required to send a test email')
     }
 
     const userRecord = await admin
@@ -171,10 +151,7 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
       (typeof request.data?.email === 'string' ? request.data.email.trim() : '')
 
     if (!email) {
-      throw new HttpsError(
-        'failed-precondition',
-        'No email address available for this user',
-      )
+      throw new HttpsError('failed-precondition', 'No email address available for this user')
     }
 
     const locale = await fetchUserLocale({ firestore, userId })
@@ -211,13 +188,10 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
   },
 )
 
-export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, async request => {
+export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, async (request) => {
   const userId = request.auth?.uid
   if (!userId) {
-    throw new HttpsError(
-      'failed-precondition',
-      'Authentication is required to update locale',
-    )
+    throw new HttpsError('failed-precondition', 'Authentication is required to update locale')
   }
 
   const localeInput = typeof request.data?.locale === 'string' ? request.data.locale.trim() : ''
@@ -226,16 +200,13 @@ export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, a
   }
 
   const normalized = resolveLocaleTag(localeInput)
-  await firestore
-    .collection('users')
-    .doc(userId)
-    .set(
-      {
-        locale: normalized,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    )
+  await firestore.collection('users').doc(userId).set(
+    {
+      locale: normalized,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  )
 
   return { locale: normalized }
 })
@@ -268,7 +239,7 @@ export { clickRedirect } from './tracking/clickRedirect'
 async function fetchUserTokens(userId: string) {
   const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get()
   return snapshot.docs
-    .map(docSnapshot => docSnapshot.data().token as string | undefined)
+    .map((docSnapshot) => docSnapshot.data().token as string | undefined)
     .filter((token): token is string => Boolean(token))
 }
 
@@ -451,9 +422,7 @@ async function processBudgetAlerts(notificationEngine: NotificationEngine): Prom
   for (const budgetDoc of budgetsSnapshot.docs) {
     const data = budgetDoc.data() as Record<string, unknown>
     const userId =
-      typeof data.userId === 'string' && data.userId.trim().length > 0
-        ? data.userId.trim()
-        : null
+      typeof data.userId === 'string' && data.userId.trim().length > 0 ? data.userId.trim() : null
     if (!userId) {
       continue
     }
@@ -496,12 +465,12 @@ function toPositiveNumber(value: unknown): number {
 function normalizeThresholds(value: unknown): number[] {
   const raw = Array.isArray(value) ? value : value != null ? [value] : [80, 100]
   const thresholds = raw
-    .map(entry => {
+    .map((entry) => {
       const numeric = typeof entry === 'number' ? entry : Number(entry)
       return Number.isFinite(numeric) ? numeric : null
     })
     .filter((entry): entry is number => entry !== null)
-    .map(entry => Math.max(0, entry))
+    .map((entry) => Math.max(0, entry))
 
   if (thresholds.length === 0) {
     return [80, 100]

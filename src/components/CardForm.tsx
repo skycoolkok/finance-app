@@ -54,7 +54,7 @@ export default function CardForm({ userId, existingCard, onComplete }: CardFormP
     const key = name as keyof CardFormState
     const nextValue = type === 'number' ? (value === '' ? '' : Number(value)) : value
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [key]: nextValue,
     }))

@@ -84,6 +84,7 @@ Before deploying Firebase Functions, complete the following:
    ```bash
    APP_BASE_URL="https://finance-app-sigma-jet.vercel.app" npm --prefix functions run config:set:appurl
    ```
+
    - **Windows PowerShell**
      ```powershell
      $env:APP_BASE_URL = "https://finance-app-sigma-jet.vercel.app"
@@ -100,6 +101,7 @@ Before deploying Firebase Functions, complete the following:
      app.open_pixel_url="https://asia-east1-<your-project-id>.cloudfunctions.net/openPixel" \
      app.click_redirect_url="https://asia-east1-<your-project-id>.cloudfunctions.net/clickRedirect"
    ```
+
    - Replace `<your-project-id>` with your Firebase project ID.
    - If you omit `open_pixel_url` or `click_redirect_url`, the functions fallback to the values derived from `APP_BASE_URL`.
 4. **Verify runtime configuration**
