@@ -4,17 +4,19 @@ import { collection, deleteDoc, doc, onSnapshot, orderBy, query, where } from 'f
 
 import { db } from '../firebase'
 import type { Card } from '../models/types'
-import { formatMoney, useCurrency } from '../lib/currency'
+import { normalizeLanguageTag } from '../lib/language'
+import { formatCurrency, type CurrencyCode, type Rates } from '../lib/money'
 
 type CardListProps = {
   userId: string | null
   onEdit: (card: Card) => void
+  preferredCurrency: CurrencyCode
+  rates: Rates
 }
 
-export default function CardList({ userId, onEdit }: CardListProps) {
+export default function CardList({ userId, onEdit, preferredCurrency, rates }: CardListProps) {
   const { t, i18n } = useTranslation()
-  const locale = i18n.resolvedLanguage || i18n.language
-  const currencyCode = useCurrency()
+  const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
   const [cards, setCards] = useState<Card[]>([])
 
   useEffect(() => {
@@ -72,7 +74,11 @@ export default function CardList({ userId, onEdit }: CardListProps) {
           <div className="text-right text-sm">
             <p>
               {t('cards.list.limit')}:{' '}
-              {formatMoney(Number(card.limitAmount ?? 0), { locale, currency: currencyCode })}
+              {formatCurrency(Number(card.limitAmount ?? 0), {
+                currency: preferredCurrency,
+                lng: locale,
+                rates,
+              })}
             </p>
             <p>
               {t('cards.list.due')}: {card.dueDay}

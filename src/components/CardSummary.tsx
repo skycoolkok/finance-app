@@ -2,17 +2,19 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
 import type { CardSummary as CardSummaryType } from '../hooks/useCardSummaries'
-import { formatMoney, useCurrency } from '../lib/currency'
 import { date } from '../lib/fmt'
+import { normalizeLanguageTag } from '../lib/language'
+import { formatCurrency, type CurrencyCode, type Rates } from '../lib/money'
 
 type CardSummaryProps = {
   summary: CardSummaryType
+  preferredCurrency: CurrencyCode
+  rates: Rates
 }
 
-export function CardSummary({ summary }: CardSummaryProps) {
+export function CardSummary({ summary, preferredCurrency, rates }: CardSummaryProps) {
   const { t, i18n } = useTranslation()
-  const locale = i18n.resolvedLanguage || i18n.language
-  const currencyCode = useCurrency()
+  const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
 
   const {
     card,
@@ -48,13 +50,13 @@ export function CardSummary({ summary }: CardSummaryProps) {
         <div>
           <dt className="text-sm text-slate-400">{t('cards.summary.currentDue')}</dt>
           <dd className="text-xl font-semibold text-slate-100">
-            {formatMoney(currentDue, { locale, currency: currencyCode })}
+            {formatCurrency(currentDue, { currency: preferredCurrency, lng: locale, rates })}
           </dd>
         </div>
         <div>
           <dt className="text-sm text-slate-400">{t('cards.summary.nextEstimate')}</dt>
           <dd className="text-xl font-semibold text-slate-100">
-            {formatMoney(nextEstimate, { locale, currency: currencyCode })}
+            {formatCurrency(nextEstimate, { currency: preferredCurrency, lng: locale, rates })}
           </dd>
         </div>
         <div>

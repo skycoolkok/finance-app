@@ -121,3 +121,11 @@ Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabl
   npm --prefix functions run build
   firebase deploy --only functions
   ```
+
+## User Preferences & FX Rates
+
+- Each user document (`users/{uid}`) now supports a `preferredCurrency` field (`'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'`). When absent we default to `TWD`.
+- The front end keeps the preference in Firestore **and** `localStorage` so the interface switches currencies immediately even while offline.
+- All monetary display logic runs through `src/lib/money.ts`. Amounts stay persisted in TWD and are formatted/conversion-ready via `formatCurrency(valueTwd, options)`.
+- Currency formatting accepts optional rates (TWD→target). If you omit a rate, the UI falls back to symbol/locale-only formatting (`NT$ 1,234` becomes `$ 1,234` when set to USD but no rate is available).
+- Manual FX rates can be recorded by calling the callable Cloud Function `setFxRates`, which writes to `fx_rates/{dateISO}` with the latest rates. A stubbed `refreshFxRates` scheduled function is ready for future automation.

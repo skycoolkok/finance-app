@@ -4,21 +4,28 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 
 import { db } from '../firebase'
 import type { Card, Transaction, Wallet } from '../models/types'
-import { formatMoney, useCurrency } from '../lib/currency'
 import { date } from '../lib/fmt'
+import { normalizeLanguageTag } from '../lib/language'
+import { formatCurrency, type CurrencyCode, type Rates } from '../lib/money'
 
 type TransactionListProps = {
   userId: string | null
   onTransactionsChange?: (transactions: Transaction[]) => void
+  preferredCurrency: CurrencyCode
+  rates: Rates
 }
 
-export default function TransactionList({ userId, onTransactionsChange }: TransactionListProps) {
+export default function TransactionList({
+  userId,
+  onTransactionsChange,
+  preferredCurrency,
+  rates,
+}: TransactionListProps) {
   const { t, i18n } = useTranslation()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [cardsById, setCardsById] = useState<Record<string, Card>>({})
   const [walletsById, setWalletsById] = useState<Record<string, Wallet>>({})
-  const locale = i18n.resolvedLanguage || i18n.language
-  const currencyCode = useCurrency()
+  const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
 
   useEffect(() => {
     if (!userId) {
@@ -157,7 +164,7 @@ export default function TransactionList({ userId, onTransactionsChange }: Transa
             </div>
             <div className="text-right">
               <p className="text-base font-semibold text-emerald-400">
-                {formatMoney(tx.amount, { locale, currency: currencyCode })}
+                {formatCurrency(tx.amount, { currency: preferredCurrency, lng: locale, rates })}
               </p>
               {tx.affectCurrentBill ? (
                 <p className="text-xs text-emerald-500">

@@ -5,11 +5,14 @@ import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
 import LanguageSwitcher from './components/LanguageSwitcher'
 import { NotificationCenter } from './components/NotificationCenter'
+import { SettingsPreferences } from './components/SettingsPreferences'
 import { SettingsNotifications } from './components/SettingsNotifications'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import WalletForm from './components/WalletForm'
 import WalletList from './components/WalletList'
+import { useFxRates } from './hooks/useFxRates'
+import { useUserPrefs } from './hooks/useUserPrefs'
 import { initFcmAndRegister } from './messaging'
 import { auth } from './firebase'
 import type { Card, Wallet } from './models/types'
@@ -21,6 +24,13 @@ export default function App() {
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
 
   const userId = auth.currentUser?.uid ?? 'demo-user'
+  const {
+    preferredCurrency,
+    loading: currencyLoading,
+    setPreferredCurrency,
+    availableCurrencies,
+  } = useUserPrefs(userId)
+  const { rates, loading: ratesLoading } = useFxRates()
 
   useEffect(() => {
     initFcmAndRegister(userId).catch((error) => {
@@ -71,7 +81,12 @@ export default function App() {
         </div>
       </header>
 
-      <Dashboard userId={userId} />
+      <Dashboard
+        userId={userId}
+        preferredCurrency={preferredCurrency}
+        currencyLoading={currencyLoading}
+        rates={rates}
+      />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
@@ -81,7 +96,12 @@ export default function App() {
             existingCard={editingCard}
             onComplete={handleCardFormComplete}
           />
-          <CardList userId={userId} onEdit={handleEditCard} />
+          <CardList
+            userId={userId}
+            onEdit={handleEditCard}
+            preferredCurrency={preferredCurrency}
+            rates={rates}
+          />
         </div>
 
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
@@ -108,12 +128,24 @@ export default function App() {
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <TransactionForm userId={userId} />
-        <TransactionList userId={userId} />
+        <TransactionList
+          userId={userId}
+          preferredCurrency={preferredCurrency}
+          rates={rates}
+        />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <NotificationCenter userId={userId} />
-        <SettingsNotifications userId={userId} />
+        <div className="space-y-6">
+          <SettingsPreferences
+            preferredCurrency={preferredCurrency}
+            availableCurrencies={availableCurrencies}
+            setPreferredCurrency={setPreferredCurrency}
+            currencyLoading={currencyLoading || ratesLoading}
+          />
+          <SettingsNotifications userId={userId} />
+        </div>
       </section>
     </div>
   )

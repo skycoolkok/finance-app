@@ -40,6 +40,15 @@ const SCHEDULE_OPTIONS = {
   secrets: [RESEND_API_KEY],
 }
 
+const FX_SCHEDULE_OPTIONS = {
+  region: REGION,
+  schedule: 'every day 04:00',
+  timeZone: 'Asia/Taipei',
+  cpu: 1,
+  memory: '128MiB' as const,
+  timeoutSeconds: 60,
+}
+
 if (!admin.apps.length) {
   admin.initializeApp()
 }
@@ -47,6 +56,35 @@ if (!admin.apps.length) {
 const firestore = admin.firestore()
 const messaging = admin.messaging()
 const APP_BASE_URL = getAppBaseUrl()
+
+type FxCurrencyCode = 'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'
+
+const SUPPORTED_FX_CODES = new Set<FxCurrencyCode>(['TWD', 'USD', 'EUR', 'GBP', 'JPY', 'KRW'])
+
+function isFxCurrency(value: string): value is FxCurrencyCode {
+  return SUPPORTED_FX_CODES.has(value as FxCurrencyCode)
+}
+
+function normaliseFxRates(input: unknown): Record<string, number> {
+  const rates: Record<string, number> = {}
+
+  if (input && typeof input === 'object') {
+    for (const [code, value] of Object.entries(input as Record<string, unknown>)) {
+      const upper = code.toUpperCase()
+      if (!isFxCurrency(upper)) {
+        continue
+      }
+      const numeric = typeof value === 'number' ? value : Number(value)
+      if (!Number.isFinite(numeric) || numeric <= 0) {
+        continue
+      }
+      rates[upper] = numeric
+    }
+  }
+
+  rates.TWD = 1
+  return rates
+}
 
 export const registerToken = onCall<{ token?: string; userId?: string; platform?: string } | null>(
   HTTPS_OPTIONS,
@@ -133,6 +171,47 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
   return { successCount: response.successCount, failureCount: response.failureCount }
 })
 
+export const setFxRates = onCall<
+  { date?: string; rates?: Record<string, unknown>; source?: 'manual' | 'api' } | null
+>(HTTPS_OPTIONS, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('failed-precondition', 'Authentication is required to update FX rates')
+  }
+
+  const payload = request.data ?? {}
+  const rawRates = payload.rates
+  if (!rawRates || typeof rawRates !== 'object') {
+    throw new HttpsError('invalid-argument', 'rates object is required')
+  }
+
+  const dateISO =
+    typeof payload.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+      ? payload.date
+      : new Date().toISOString().slice(0, 10)
+
+  const rates = normaliseFxRates(rawRates)
+  if (Object.keys(rates).length === 1 && rates.TWD === 1) {
+    throw new HttpsError('invalid-argument', 'At least one non-TWD rate must be provided')
+  }
+
+  const source: 'manual' | 'api' = payload.source === 'api' ? 'api' : 'manual'
+  const docRef = firestore.collection('fx_rates').doc(dateISO)
+
+  await docRef.set(
+    {
+      base: 'TWD',
+      rates,
+      source,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  )
+
+  logger.info('FX rates updated', { dateISO, count: Object.keys(rates).length, source })
+
+  return { date: dateISO, count: Object.keys(rates).length, source }
+})
+
 export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
   HTTPS_OPTIONS,
   async (request) => {
@@ -209,6 +288,10 @@ export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, a
   )
 
   return { locale: normalized }
+})
+
+export const refreshFxRates = onSchedule(FX_SCHEDULE_OPTIONS, async () => {
+  logger.info('refreshFxRates stub executed - configure an external provider to enable updates.')
 })
 
 export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {

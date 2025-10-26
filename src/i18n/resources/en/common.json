@@ -28,6 +28,8 @@
     "subtitle": "Track statement cycles, utilization, and upcoming due dates across your cards.",
     "totalCurrentDue": "Total Current Due",
     "nextEstimate": "Next Estimate {{amount}}",
+    "currencyBadge": "Currency: {{currency}}",
+    "currencyLoading": "Syncing currency preference...",
     "loading": "Loading billing data...",
     "empty": "Add a card to see billing insights."
   },
@@ -268,7 +270,7 @@
         "noAccess": "Sign in to access notification tools."
       },
       "status": {
-        "localeCurrency": "Locale: {{locale}} | Currency: {{currency}}"
+        "locale": "Locale: {{locale}}"
       }
     }
   },
@@ -285,5 +287,30 @@
     "wallets": "Wallets",
     "transactions": "Transactions",
     "notifications": "Notifications"
+  },
+  "settings": {
+    "preferences": {
+      "title": "Preferences",
+      "subtitle": "Control your display language and currency defaults.",
+      "language": {
+        "title": "Language",
+        "description": "Select the interface language."
+      },
+      "currency": {
+        "title": "Currency",
+        "description": "Select how amounts are displayed across the app.",
+        "options": {
+          "TWD": "New Taiwan Dollar (TWD)",
+          "USD": "US Dollar (USD)",
+          "EUR": "Euro (EUR)",
+          "GBP": "British Pound (GBP)",
+          "JPY": "Japanese Yen (JPY)",
+          "KRW": "South Korean Won (KRW)"
+        },
+        "updated": "Currency switched to {{currency}}.",
+        "saving": "Saving currency preference..."
+      },
+      "devSummary": "DEV • Current currency: {{currency}}"
+    }
   }
 }

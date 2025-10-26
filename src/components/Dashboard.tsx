@@ -1,18 +1,22 @@
 import { useTranslation } from 'react-i18next'
 
 import { useCardSummaries } from '../hooks/useCardSummaries'
-import { formatMoney, useCurrency } from '../lib/currency'
+import { normalizeLanguageTag } from '../lib/language'
+import { formatCurrency, type CurrencyCode, type Rates } from '../lib/money'
 import { CardSummary } from './CardSummary'
 
 type DashboardProps = {
   userId: string | null
+  preferredCurrency: CurrencyCode
+  currencyLoading: boolean
+  rates: Rates
 }
 
-export function Dashboard({ userId }: DashboardProps) {
+export function Dashboard({ userId, preferredCurrency, currencyLoading, rates }: DashboardProps) {
   const { t, i18n } = useTranslation()
   const { summaries, totals, loading } = useCardSummaries(userId)
-  const locale = i18n.resolvedLanguage || i18n.language
-  const currencyCode = useCurrency()
+  const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
+  const isDev = import.meta.env.DEV
 
   return (
     <section className="space-y-5 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
@@ -26,13 +30,24 @@ export function Dashboard({ userId }: DashboardProps) {
             {t('dashboard.totalCurrentDue')}
           </p>
           <p className="text-lg font-semibold text-emerald-400">
-            {formatMoney(totals.currentDue, { locale, currency: currencyCode })}
+            {formatCurrency(totals.currentDue, { currency: preferredCurrency, lng: locale, rates })}
           </p>
           <p className="text-xs text-slate-500">
             {t('dashboard.nextEstimate', {
-              amount: formatMoney(totals.nextEstimate, { locale, currency: currencyCode }),
+              amount: formatCurrency(totals.nextEstimate, {
+                currency: preferredCurrency,
+                lng: locale,
+                rates,
+              }),
             })}
           </p>
+          {isDev && (
+            <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-600">
+              {currencyLoading
+                ? t('dashboard.currencyLoading')
+                : t('dashboard.currencyBadge', { currency: preferredCurrency })}
+            </p>
+          )}
         </div>
       </header>
 
@@ -43,7 +58,12 @@ export function Dashboard({ userId }: DashboardProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {summaries.map((summary) => (
-            <CardSummary key={summary.card.id} summary={summary} />
+            <CardSummary
+              key={summary.card.id}
+              summary={summary}
+              preferredCurrency={preferredCurrency}
+              rates={rates}
+            />
           ))}
         </div>
       )}

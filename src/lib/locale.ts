@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react'
+import type { CurrencyCode } from './currencyCodes'
 
 export type AppLocale = 'en' | 'zh-TW'
 
 export type PreferenceChangeDetail =
   | { type: 'locale'; value: AppLocale }
-  | { type: 'currency'; value: string }
+  | { type: 'currency'; value: CurrencyCode }
 
 export const PREFERENCE_CHANGE_EVENT = 'app:pref-changed'
 

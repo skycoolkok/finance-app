@@ -5,7 +5,6 @@ import { httpsCallable } from 'firebase/functions'
 
 import { auth, functions } from '../firebase'
 import { setUserLocale } from '../functions'
-import { useCurrency, setCurrency } from '../lib/currency'
 import { normalizeLanguageTag } from '../lib/language'
 import { useLocale } from '../lib/locale'
 
@@ -15,7 +14,6 @@ type SettingsNotificationsProps = {
 
 export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
   const { t, i18n } = useTranslation()
-  const currencyCode = useCurrency()
   const currentLocale = useLocale()
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -87,14 +85,6 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
     }
   }
 
-  const handleCurrencyChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextCurrency = event.target.value
-    setCurrency(nextCurrency)
-    setError(null)
-    const currencyLabel = t(`notifications.settings.currency.options.${nextCurrency}` as const)
-    setStatus(t('notifications.settings.currency.updated', { currency: currencyLabel }))
-  }
-
   const handleLanguageChange = async (event: ChangeEvent<HTMLSelectElement>) => {
     const nextLocale = normalizeLanguageTag(event.target.value)
     setError(null)
@@ -149,26 +139,9 @@ export function SettingsNotifications({ userId }: SettingsNotificationsProps) {
         <p className="text-xs text-slate-500">{t('notifications.settings.language.description')}</p>
       </div>
 
-      <div className="space-y-2 rounded border border-slate-800 bg-slate-950/60 p-4">
-        <label htmlFor="currency-select" className="text-sm font-medium text-slate-200">
-          {t('notifications.settings.currency.label')}
-        </label>
-        <select
-          id="currency-select"
-          className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-          value={currencyCode}
-          onChange={handleCurrencyChange}
-        >
-          <option value="USD">{t('notifications.settings.currency.options.USD')}</option>
-          <option value="TWD">{t('notifications.settings.currency.options.TWD')}</option>
-        </select>
-        <p className="text-xs text-slate-500">{t('notifications.settings.currency.description')}</p>
-      </div>
-
       <p className="text-xs text-slate-500">
-        {t('notifications.settings.status.localeCurrency', {
+        {t('notifications.settings.status.locale', {
           locale: currentLocale,
-          currency: currencyCode,
         })}
       </p>
 

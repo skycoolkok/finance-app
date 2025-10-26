@@ -29,7 +29,9 @@
     "totalCurrentDue": "目前應付總額",
     "nextEstimate": "下一期預估 {{amount}}",
     "loading": "帳務資料載入中…",
-    "empty": "新增卡片即可看到帳務洞察。"
+    "empty": "新增卡片即可看到帳務洞察。",
+    "currencyBadge": "顯示幣別：{{currency}}",
+    "currencyLoading": "正在同步幣別偏好..."
   },
   "cards": {
     "sectionTitle": "信用卡",
@@ -268,7 +270,7 @@
         "noAccess": "請登入後使用通知工具。"
       },
       "status": {
-        "localeCurrency": "語言：{{locale}}｜貨幣：{{currency}}"
+        "locale": "介面語系：{{locale}}"
       }
     }
   },
@@ -285,5 +287,30 @@
     "wallets": "錢包管理",
     "transactions": "交易記錄",
     "notifications": "通知中心"
+  },
+  "settings": {
+    "preferences": {
+      "title": "偏好設定",
+      "subtitle": "設定介面語言與金額顯示幣別。",
+      "language": {
+        "title": "語言",
+        "description": "選擇介面語言。"
+      },
+      "currency": {
+        "title": "幣別",
+        "description": "選擇金額顯示幣別。",
+        "options": {
+          "TWD": "新台幣 (TWD)",
+          "USD": "美元 (USD)",
+          "EUR": "歐元 (EUR)",
+          "GBP": "英鎊 (GBP)",
+          "JPY": "日圓 (JPY)",
+          "KRW": "韓元 (KRW)"
+        },
+        "updated": "已切換為 {{currency}}。",
+        "saving": "儲存幣別偏好中..."
+      },
+      "devSummary": "DEV - 目前幣別: {{currency}}"
+    }
   }
 }

@@ -19,11 +19,12 @@ function readStoredLanguage(): AppLocale | null {
     return null
   }
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (!stored) {
+    const storedRaw = window.localStorage.getItem(STORAGE_KEY)
+    if (!storedRaw) {
       return null
     }
-    return normalizeLocale(stored)
+    const normalized = normalizeLocale(storedRaw)
+    return normalized
   } catch {
     return null
   }
@@ -40,7 +41,7 @@ function applyDocumentLanguage(locale: AppLocale) {
   document.documentElement.lang = locale
 }
 
-const initialLanguage = readStoredLanguage() ?? FALLBACK_LOCALE
+const initialLanguage = readStoredLanguage() ?? 'zh-TW'
 
 function ensureLanguageSideEffects(language: string) {
   const normalized = normalizeLocale(language)
@@ -58,7 +59,7 @@ if (!i18next.isInitialized) {
     .init({
       resources,
       lng: initialLanguage,
-      fallbackLng: FALLBACK_LOCALE,
+      fallbackLng: 'en',
       supportedLngs: supportedLanguages,
       load: 'currentOnly',
       defaultNS: 'common',

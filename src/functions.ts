@@ -1,4 +1,5 @@
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions'
+import type { CurrencyCode } from './lib/money'
 import { app } from './firebase'
 
 // 初始化 Functions
@@ -16,3 +17,7 @@ export const setUserLocale = httpsCallable<{ locale: string }, { locale: string 
   fns,
   'setUserLocale',
 )
+export const setFxRates = httpsCallable<
+  { date?: string; rates: Partial<Record<CurrencyCode, number>>; source?: 'manual' | 'api' },
+  { date: string; count: number; source: 'manual' | 'api' }
+>(fns, 'setFxRates')
