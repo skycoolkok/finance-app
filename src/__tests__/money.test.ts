@@ -1,37 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-vi.hoisted(() => {
-  const scope = globalThis as Record<string, unknown>
-  if (typeof scope.__vite_ssr_exportName__ !== 'function') {
-    scope.__vite_ssr_exportName__ = (
-      target: Record<string, unknown>,
-      name: string,
-      valueOrGetter: unknown,
-    ) => {
-      if (!target || typeof target !== 'object') {
-        return
-      }
-      if (!Object.prototype.hasOwnProperty.call(target, name)) {
-        if (typeof valueOrGetter === 'function') {
-          Object.defineProperty(target, name, {
-            enumerable: true,
-            get: valueOrGetter as () => unknown,
-          })
-        } else {
-          Object.defineProperty(target, name, { enumerable: true, value: valueOrGetter })
-        }
-      }
-    }
-  }
-})
-
+import './setup/vite-ssr-export'
 import '../lib/money'
 
 type MoneyRegistry = {
   formatCurrency?: typeof import('../lib/money').formatCurrency
 }
 
-const registry = ((globalThis as Record<string, unknown>).__financeMoney__ as MoneyRegistry | undefined) ?? undefined
+const registry =
+  ((globalThis as Record<string, unknown>).__financeMoney__ as MoneyRegistry | undefined) ??
+  undefined
 
 if (!registry || typeof registry.formatCurrency !== 'function') {
   throw new Error('formatCurrency export missing for tests')
@@ -50,13 +28,31 @@ describe('formatCurrency', () => {
     expect(formatCurrency(1234, { currency: 'TWD', lng: 'en' })).toBe('NT$ 1,234')
   })
 
-  it('applies provided rates for conversion', () => {
+  it('applies provided rates for conversion (USD)', () => {
     const result = formatCurrency(10000, {
       currency: 'USD',
       lng: 'en',
       rates: { USD: 0.031 },
     })
     expect(result).toBe('$ 310')
+  })
+
+  it('applies provided rates for conversion (EUR)', () => {
+    const result = formatCurrency(10000, {
+      currency: 'EUR',
+      lng: 'en',
+      rates: { EUR: 0.0285 },
+    })
+    expect(result).toBe('€ 285')
+  })
+
+  it('applies provided rates for conversion (GBP)', () => {
+    const result = formatCurrency(10000, {
+      currency: 'GBP',
+      lng: 'en',
+      rates: { GBP: 0.024 },
+    })
+    expect(result).toBe('£ 240')
   })
 
   it('defaults to zero decimals for JPY', () => {
@@ -66,6 +62,15 @@ describe('formatCurrency', () => {
       rates: { JPY: 4.8 },
     })
     expect(result).toBe('¥ 5,923')
+  })
+
+  it('defaults to zero decimals for KRW', () => {
+    const result = formatCurrency(9876.54, {
+      currency: 'KRW',
+      lng: 'en',
+      rates: { KRW: 38.7 },
+    })
+    expect(result).toBe('₩ 382,222')
   })
 
   it('falls back to symbol-only change when rate is missing', () => {

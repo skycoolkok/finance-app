@@ -38,8 +38,24 @@ function ensureConfig() {
   }
 }
 
-function createServiceWorker(config) {
-  return `const CACHE_NAME = 'finance-app-cache-v1';
+function resolveBuildId() {
+  const envBuildId = process.env.VITE_BUILD_ID
+  if (envBuildId && typeof envBuildId === 'string' && envBuildId.trim()) {
+    return envBuildId.trim()
+  }
+
+  const commitSha = process.env.VERCEL_GIT_COMMIT_SHA
+  if (commitSha && typeof commitSha === 'string' && commitSha.length >= 7) {
+    return commitSha.slice(0, 7)
+  }
+
+  return 'local'
+}
+
+function createServiceWorker(config, buildId) {
+  const buildComment = `// BuildId: ${buildId}`
+  return `${buildComment}
+const CACHE_NAME = 'finance-app-cache-v1';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.webmanifest', '/vite.svg'];
 
 self.addEventListener('install', event => {
@@ -135,7 +151,8 @@ self.addEventListener('notificationclick', event => {
 
 function main() {
   const config = ensureConfig()
-  const swContent = createServiceWorker(config)
+  const buildId = resolveBuildId()
+  const swContent = createServiceWorker(config, buildId)
   const outputPath = path.resolve(__dirname, '../public/firebase-messaging-sw.js')
   fs.writeFileSync(outputPath, swContent, 'utf8')
   console.log(`Generated firebase-messaging-sw.js at ${outputPath}`)

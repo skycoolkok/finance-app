@@ -4,6 +4,7 @@ import { initReactI18next } from 'react-i18next'
 import enCommon from './resources/en/common.json'
 import zhTwCommon from './resources/zh-TW/common.json'
 import { AppLocale, FALLBACK_LOCALE, normalizeLocale, setLocale } from '../lib/locale'
+import { resolveLanguageFromStorage } from './language-utils'
 
 const STORAGE_KEY = 'lang' as const
 
@@ -14,24 +15,21 @@ const resources = {
 
 const supportedLanguages = Object.keys(resources) as AppLocale[]
 
-function readStoredLanguage(): AppLocale | null {
+let lastPersistedLanguage: AppLocale | null = null
+
+function readStoredLanguageValue(): string | null {
   if (typeof window === 'undefined') {
     return null
   }
   try {
-    const storedRaw = window.localStorage.getItem(STORAGE_KEY)
-    if (!storedRaw) {
-      return null
-    }
-    const normalized = normalizeLocale(storedRaw)
-    return normalized
+    return window.localStorage.getItem(STORAGE_KEY)
   } catch {
     return null
   }
 }
 
-function persistLanguage(locale: AppLocale) {
-  setLocale(locale)
+function resolveInitialLanguage(): AppLocale {
+  return resolveLanguageFromStorage(readStoredLanguageValue())
 }
 
 function applyDocumentLanguage(locale: AppLocale) {
@@ -41,17 +39,21 @@ function applyDocumentLanguage(locale: AppLocale) {
   document.documentElement.lang = locale
 }
 
-const initialLanguage = readStoredLanguage() ?? 'zh-TW'
-
-function ensureLanguageSideEffects(language: string) {
-  const normalized = normalizeLocale(language)
-  if (normalized !== language) {
-    void i18next.changeLanguage(normalized)
+function persistLanguage(locale: AppLocale) {
+  if (lastPersistedLanguage === locale) {
     return
   }
+  lastPersistedLanguage = setLocale(locale)
+}
+
+function applyLanguageSideEffects(language: string) {
+  const normalized = normalizeLocale(language)
   applyDocumentLanguage(normalized)
   persistLanguage(normalized)
 }
+
+const initialLanguage = resolveInitialLanguage()
+applyDocumentLanguage(initialLanguage)
 
 if (!i18next.isInitialized) {
   void i18next
@@ -70,7 +72,7 @@ if (!i18next.isInitialized) {
       },
     })
     .then(() => {
-      ensureLanguageSideEffects(i18next.language)
+      applyLanguageSideEffects(i18next.language)
     })
     .catch((error) => {
       if (import.meta.env.DEV) {
@@ -78,7 +80,7 @@ if (!i18next.isInitialized) {
       }
     })
 } else {
-  ensureLanguageSideEffects(i18next.language)
+  applyLanguageSideEffects(i18next.language)
 }
 
 const globalScope =
@@ -87,7 +89,7 @@ const listenerFlag = '__financeAppLanguageListener__'
 
 if (!globalScope[listenerFlag]) {
   i18next.on('languageChanged', (language) => {
-    ensureLanguageSideEffects(language)
+    applyLanguageSideEffects(language)
   })
   globalScope[listenerFlag] = true
 }
@@ -101,3 +103,5 @@ export function getCurrentLocale(): AppLocale {
 }
 
 export default i18next
+
+export { resolveLanguageFromStorage }

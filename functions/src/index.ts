@@ -171,9 +171,11 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
   return { successCount: response.successCount, failureCount: response.failureCount }
 })
 
-export const setFxRates = onCall<
-  { date?: string; rates?: Record<string, unknown>; source?: 'manual' | 'api' } | null
->(HTTPS_OPTIONS, async (request) => {
+export const setFxRates = onCall<{
+  date?: string
+  rates?: Record<string, unknown>
+  source?: 'manual' | 'api'
+} | null>(HTTPS_OPTIONS, async (request) => {
   if (!request.auth?.uid) {
     throw new HttpsError('failed-precondition', 'Authentication is required to update FX rates')
   }

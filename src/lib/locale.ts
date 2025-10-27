@@ -1,3 +1,4 @@
+import './vite-ssr-export-shim'
 import { useSyncExternalStore } from 'react'
 import type { CurrencyCode } from './currencyCodes'
 

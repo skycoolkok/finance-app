@@ -5,8 +5,11 @@ import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
 import LanguageSwitcher from './components/LanguageSwitcher'
 import { NotificationCenter } from './components/NotificationCenter'
+import { DiagBadge } from './components/DiagBadge'
+import { HealthCheck } from './components/HealthCheck'
 import { SettingsPreferences } from './components/SettingsPreferences'
 import { SettingsNotifications } from './components/SettingsNotifications'
+import { FxRatesAdmin } from './components/FxRatesAdmin'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import WalletForm from './components/WalletForm'
@@ -15,6 +18,7 @@ import { useFxRates } from './hooks/useFxRates'
 import { useUserPrefs } from './hooks/useUserPrefs'
 import { initFcmAndRegister } from './messaging'
 import { auth } from './firebase'
+import { buildId } from './version'
 import type { Card, Wallet } from './models/types'
 
 export default function App() {
@@ -22,6 +26,7 @@ export default function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
+  const isHealthRoute = typeof window !== 'undefined' && window.location.pathname === '/__health'
 
   const userId = auth.currentUser?.uid ?? 'demo-user'
   const {
@@ -30,21 +35,45 @@ export default function App() {
     setPreferredCurrency,
     availableCurrencies,
   } = useUserPrefs(userId)
-  const { rates, loading: ratesLoading } = useFxRates()
+  const {
+    rates,
+    loading: ratesLoading,
+    active: ratesActive,
+    effectiveDate: ratesEffectiveDate,
+    source: ratesSource,
+  } = useFxRates()
+  const userEmail = auth.currentUser?.email ?? null
 
   useEffect(() => {
+    if (isHealthRoute) {
+      return
+    }
     initFcmAndRegister(userId).catch((error) => {
       console.error('FCM initialization failed', error)
     })
-  }, [userId])
+  }, [isHealthRoute, userId])
 
   useEffect(() => {
     // Quick visibility into active language during development
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && !isHealthRoute) {
       console.log('[i18n] active language:', i18n.language)
       console.log('[i18n] sample title:', t('app.title'))
     }
-  }, [i18n.language, t])
+  }, [i18n.language, isHealthRoute, t])
+
+  if (isHealthRoute) {
+    return (
+      <HealthCheck
+        preferredCurrency={preferredCurrency}
+        currencyLoading={currencyLoading}
+        rates={rates}
+        ratesLoading={ratesLoading}
+        ratesActive={ratesActive}
+        ratesEffectiveDate={ratesEffectiveDate}
+        ratesSource={ratesSource}
+      />
+    )
+  }
 
   const handleEditCard = (card: Card) => {
     setEditingCard(card)
@@ -71,6 +100,7 @@ export default function App() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 p-4 text-slate-100">
+      {import.meta.env.DEV && <DiagBadge preferredCurrency={preferredCurrency} />}
       <header className="rounded border border-slate-800 bg-slate-900/40 p-6 shadow">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -128,11 +158,7 @@ export default function App() {
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <TransactionForm userId={userId} />
-        <TransactionList
-          userId={userId}
-          preferredCurrency={preferredCurrency}
-          rates={rates}
-        />
+        <TransactionList userId={userId} preferredCurrency={preferredCurrency} rates={rates} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -145,8 +171,17 @@ export default function App() {
             currencyLoading={currencyLoading || ratesLoading}
           />
           <SettingsNotifications userId={userId} />
+          <FxRatesAdmin
+            userEmail={userEmail}
+            rates={rates}
+            active={ratesActive}
+            effectiveDate={ratesEffectiveDate}
+            source={ratesSource}
+          />
         </div>
       </section>
+
+      <footer className="mt-auto text-right text-xs text-slate-500">Build: {buildId}</footer>
     </div>
   )
 }

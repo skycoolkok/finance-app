@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { LanguageSwitcher } from './LanguageSwitcher'
 import type { CurrencyCode } from '../lib/money'
+import { buildId } from '../version'
 
 type SettingsPreferencesProps = {
   preferredCurrency: CurrencyCode
@@ -47,9 +48,7 @@ export function SettingsPreferences({
   return (
     <section className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
       <header>
-        <h2 className="text-xl font-semibold text-slate-100">
-          {t('settings.preferences.title')}
-        </h2>
+        <h2 className="text-xl font-semibold text-slate-100">{t('settings.preferences.title')}</h2>
         <p className="text-sm text-slate-500">{t('settings.preferences.subtitle')}</p>
       </header>
 
@@ -102,18 +101,17 @@ export function SettingsPreferences({
             ))}
           </select>
           {(isSaving || currencyLoading) && (
-            <p className="text-xs text-slate-500">
-              {t('settings.preferences.currency.saving')}
-            </p>
+            <p className="text-xs text-slate-500">{t('settings.preferences.currency.saving')}</p>
           )}
         </div>
       </div>
 
-      {import.meta.env.DEV && (
-        <p className="text-xs text-slate-500">
-          {t('settings.preferences.devSummary', { currency: preferredCurrency })}
-        </p>
-      )}
+      <div className="space-y-1 text-xs text-slate-500">
+        {import.meta.env.DEV && (
+          <p>{t('settings.preferences.devSummary', { currency: preferredCurrency })}</p>
+        )}
+        <p>Build: {buildId}</p>
+      </div>
     </section>
   )
 }

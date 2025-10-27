@@ -1,3 +1,4 @@
+// BuildId: local
 const CACHE_NAME = 'finance-app-cache-v1';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.webmanifest', '/vite.svg'];
 

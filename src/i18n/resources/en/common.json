@@ -310,7 +310,19 @@
         "updated": "Currency switched to {{currency}}.",
         "saving": "Saving currency preference..."
       },
-      "devSummary": "DEV • Current currency: {{currency}}"
+      "devSummary": "DEV · Current currency: {{currency}}",
+      "fxRatesAdmin": {
+        "title": "FX Rates · Admin",
+        "subtitle": "Manually seed exchange rates when automation is unavailable.",
+        "hint": "All values are quoted as target currency per 1 TWD.",
+        "currentDate": "Effective date",
+        "currentSource": "Source",
+        "active": "Active",
+        "activeYes": "yes",
+        "reset": "Reset",
+        "save": "Save",
+        "saving": "Saving..."
+      }
     }
   }
 }

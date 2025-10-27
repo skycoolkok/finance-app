@@ -1,6 +1,6 @@
 import type { PreferenceChangeDetail } from './locale'
 import { dispatchPreferenceChange } from './locale'
-import { SUPPORTED_CURRENCIES, type CurrencyCode } from './currencyCodes'
+import type { CurrencyCode } from './currencyCodes'
 
 export { SUPPORTED_CURRENCIES } from './currencyCodes'
 export type { CurrencyCode } from './currencyCodes'
@@ -75,7 +75,6 @@ export function normalizeCurrency(value: unknown): CurrencyCode {
   return DEFAULT_CURRENCY
 }
 
-
 export function readStoredCurrency(): CurrencyCode {
   if (typeof window === 'undefined') {
     return DEFAULT_CURRENCY
@@ -124,8 +123,7 @@ export function formatCurrency(valueTwd: number, opts?: FormatCurrencyOptions) {
   const rates = { ...fallbackRates, ...(opts?.rates || {}) }
   const rate = rates[currency]
   const shouldConvert = typeof rate === 'number' && rate > 0
-  const max =
-    opts?.maximumFractionDigits ?? (currency === 'JPY' || currency === 'KRW' ? 0 : 2)
+  const max = opts?.maximumFractionDigits ?? (currency === 'JPY' || currency === 'KRW' ? 0 : 2)
 
   const value = shouldConvert ? valueTwd * rate : valueTwd
   const formatter = new Intl.NumberFormat(lng, {

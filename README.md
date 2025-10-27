@@ -76,11 +76,16 @@ export default defineConfig([
 
 - The Firebase messaging service worker remains a static asset and is independent of runtime i18n features.
 
+## Troubleshooting Updates
+
+- If you cannot see the latest deployed UI, open the site in an incognito/private window, or go to **Application → Service Workers → Unregister**, then perform a **Hard Reload**.
+
 ## Deployment Preparation
 
 Before deploying Firebase Functions, complete the following:
 
 1. **Configure the app base URL**
+
    ```bash
    APP_BASE_URL="https://finance-app-sigma-jet.vercel.app" npm --prefix functions run config:set:appurl
    ```
@@ -90,11 +95,13 @@ Before deploying Firebase Functions, complete the following:
      $env:APP_BASE_URL = "https://finance-app-sigma-jet.vercel.app"
      npm --prefix functions run config:set:appurl
      ```
+
 2. **Store the Resend API key**
    ```bash
    firebase functions:secrets:set RESEND_API_KEY
    ```
 3. **(Recommended) Configure tracking endpoints**
+
    ```bash
    firebase functions:config:set \
      app.app_base_url="https://finance-app-sigma-jet.vercel.app" \
@@ -104,6 +111,7 @@ Before deploying Firebase Functions, complete the following:
 
    - Replace `<your-project-id>` with your Firebase project ID.
    - If you omit `open_pixel_url` or `click_redirect_url`, the functions fallback to the values derived from `APP_BASE_URL`.
+
 4. **Verify runtime configuration**
    ```bash
    npm --prefix functions run config:get

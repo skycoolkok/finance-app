@@ -310,7 +310,19 @@
         "updated": "已切換為 {{currency}}。",
         "saving": "儲存幣別偏好中..."
       },
-      "devSummary": "DEV - 目前幣別: {{currency}}"
+      "devSummary": "DEV · 當前貨幣：{{currency}}",
+      "fxRatesAdmin": {
+        "title": "匯率管理（Admin）",
+        "subtitle": "自動來源不可用時，可在此手動輸入匯率。",
+        "hint": "數值以 1 TWD 為基準。",
+        "currentDate": "生效日期",
+        "currentSource": "來源",
+        "active": "是否啟用",
+        "activeYes": "是",
+        "reset": "重設",
+        "save": "儲存",
+        "saving": "儲存中…"
+      }
     }
   }
 }
