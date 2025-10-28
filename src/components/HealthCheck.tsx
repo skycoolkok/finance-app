@@ -12,6 +12,7 @@ type HealthCheckProps = {
   ratesActive: boolean
   ratesEffectiveDate: string | null
   ratesSource: string | null
+  ratesUpdatedAt: string | null
 }
 
 function readStoredLanguage(): string {
@@ -25,6 +26,17 @@ function readStoredLanguage(): string {
   }
 }
 
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return '(unknown)'
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return date.toLocaleString()
+}
+
 export function HealthCheck({
   preferredCurrency,
   currencyLoading,
@@ -33,6 +45,7 @@ export function HealthCheck({
   ratesActive,
   ratesEffectiveDate,
   ratesSource,
+  ratesUpdatedAt,
 }: HealthCheckProps) {
   const { i18n } = useTranslation()
   const [storedLanguage, setStoredLanguage] = useState<string>(() => readStoredLanguage())
@@ -121,7 +134,7 @@ export function HealthCheck({
             <dt className="font-medium text-slate-400">preferredCurrency</dt>
             <dd>
               {currencyLoading ? (
-                <span className="text-amber-400">loading…</span>
+                <span className="text-amber-400">loading...</span>
               ) : (
                 preferredCurrency
               )}
@@ -154,6 +167,10 @@ export function HealthCheck({
             <dd>{ratesEffectiveDate ?? '(unknown)'}</dd>
           </div>
           <div className="flex justify-between">
+            <dt className="font-medium text-slate-400">updated at</dt>
+            <dd>{formatDateTime(ratesUpdatedAt)}</dd>
+          </div>
+          <div className="flex justify-between">
             <dt className="font-medium text-slate-400">source</dt>
             <dd>{ratesSource ?? '(unknown)'}</dd>
           </div>
@@ -166,3 +183,7 @@ export function HealthCheck({
 }
 
 export default HealthCheck
+
+
+
+

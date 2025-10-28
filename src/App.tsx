@@ -9,7 +9,7 @@ import { DiagBadge } from './components/DiagBadge'
 import { HealthCheck } from './components/HealthCheck'
 import { SettingsPreferences } from './components/SettingsPreferences'
 import { SettingsNotifications } from './components/SettingsNotifications'
-import { FxRatesAdmin } from './components/FxRatesAdmin'
+import { SettingsFxAdmin } from './components/SettingsFxAdmin'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import WalletForm from './components/WalletForm'
@@ -41,6 +41,7 @@ export default function App() {
     active: ratesActive,
     effectiveDate: ratesEffectiveDate,
     source: ratesSource,
+    updatedAt: ratesUpdatedAt,
   } = useFxRates()
   const userEmail = auth.currentUser?.email ?? null
 
@@ -71,6 +72,7 @@ export default function App() {
         ratesActive={ratesActive}
         ratesEffectiveDate={ratesEffectiveDate}
         ratesSource={ratesSource}
+        ratesUpdatedAt={ratesUpdatedAt}
       />
     )
   }
@@ -116,6 +118,8 @@ export default function App() {
         preferredCurrency={preferredCurrency}
         currencyLoading={currencyLoading}
         rates={rates}
+        ratesLoading={ratesLoading}
+        ratesActive={ratesActive}
       />
 
       <section className="grid gap-6 lg:grid-cols-2">
@@ -171,12 +175,14 @@ export default function App() {
             currencyLoading={currencyLoading || ratesLoading}
           />
           <SettingsNotifications userId={userId} />
-          <FxRatesAdmin
+          <SettingsFxAdmin
             userEmail={userEmail}
             rates={rates}
             active={ratesActive}
             effectiveDate={ratesEffectiveDate}
             source={ratesSource}
+            updatedAt={ratesUpdatedAt}
+            loading={ratesLoading}
           />
         </div>
       </section>

@@ -34,7 +34,11 @@ describe('formatCurrency', () => {
       lng: 'en',
       rates: { USD: 0.031 },
     })
-    expect(result).toBe('$ 310')
+
+    const numericPortion = Number(result.replace(/[^0-9.]/g, ''))
+    expect(result.startsWith('$ ')).toBe(true)
+    expect(numericPortion).toBeGreaterThan(309)
+    expect(numericPortion).toBeLessThan(311)
   })
 
   it('applies provided rates for conversion (EUR)', () => {

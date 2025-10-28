@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Timestamp,
   collection,
   limit,
   onSnapshot,
@@ -20,6 +21,7 @@ type FxRatesState = {
   effectiveDate: string | null
   source: string | null
   active: boolean
+  updatedAt: string | null
 }
 
 const SUPPORTED_SET = new Set<CurrencyCode>(SUPPORTED_CURRENCIES)
@@ -40,6 +42,25 @@ function isActive(rates: Rates) {
   )
 }
 
+function resolveUpdatedAt(value: unknown): string | null {
+  if (value instanceof Timestamp) {
+    return value.toDate().toISOString()
+  }
+
+  if (value && typeof value === 'object') {
+    const candidate = (value as { toDate?: () => Date }).toDate?.()
+    if (candidate instanceof Date && !Number.isNaN(candidate.getTime())) {
+      return candidate.toISOString()
+    }
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  return null
+}
+
 export function useFxRates(): {
   rates: Rates
   loading: boolean
@@ -47,6 +68,7 @@ export function useFxRates(): {
   effectiveDate: string | null
   source: string | null
   active: boolean
+  updatedAt: string | null
 } {
   const [state, setState] = useState<FxRatesState>(() => ({
     rates: fallbackRates,
@@ -55,6 +77,7 @@ export function useFxRates(): {
     effectiveDate: null,
     source: null,
     active: false,
+    updatedAt: null,
   }))
 
   useEffect(() => {
@@ -71,6 +94,7 @@ export function useFxRates(): {
             effectiveDate: null,
             source: null,
             active: false,
+            updatedAt: null,
           })
           return
         }
@@ -81,6 +105,7 @@ export function useFxRates(): {
               rates?: Record<string, unknown>
               source?: string
               date?: string
+              updatedAt?: unknown
             }
           | undefined
 
@@ -92,6 +117,7 @@ export function useFxRates(): {
             effectiveDate: resolveEffectiveDate(latest.id, data),
             source: typeof data?.source === 'string' ? data.source : null,
             active: false,
+            updatedAt: resolveUpdatedAt(data?.updatedAt),
           })
           return
         }
@@ -120,6 +146,7 @@ export function useFxRates(): {
           effectiveDate: resolveEffectiveDate(latest.id, data),
           source: typeof data?.source === 'string' ? data.source : null,
           active: isActive(merged),
+          updatedAt: resolveUpdatedAt(data?.updatedAt),
         })
       },
       (error) => {
@@ -133,6 +160,7 @@ export function useFxRates(): {
           effectiveDate: null,
           source: null,
           active: false,
+          updatedAt: null,
         })
       },
     )
@@ -150,7 +178,16 @@ export function useFxRates(): {
       effectiveDate: state.effectiveDate,
       source: state.source,
       active: state.active,
+      updatedAt: state.updatedAt,
     }),
-    [state.active, state.effectiveDate, state.error, state.loading, state.rates, state.source],
+    [
+      state.active,
+      state.effectiveDate,
+      state.error,
+      state.loading,
+      state.rates,
+      state.source,
+      state.updatedAt,
+    ],
   )
 }

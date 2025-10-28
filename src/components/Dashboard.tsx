@@ -10,9 +10,18 @@ type DashboardProps = {
   preferredCurrency: CurrencyCode
   currencyLoading: boolean
   rates: Rates
+  ratesLoading: boolean
+  ratesActive: boolean
 }
 
-export function Dashboard({ userId, preferredCurrency, currencyLoading, rates }: DashboardProps) {
+export function Dashboard({
+  userId,
+  preferredCurrency,
+  currencyLoading,
+  rates,
+  ratesLoading,
+  ratesActive,
+}: DashboardProps) {
   const { t, i18n } = useTranslation()
   const { summaries, totals, loading } = useCardSummaries(userId)
   const locale = normalizeLanguageTag(i18n.resolvedLanguage || i18n.language)
@@ -43,9 +52,18 @@ export function Dashboard({ userId, preferredCurrency, currencyLoading, rates }:
           </p>
           {isDev && (
             <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-600">
-              {currencyLoading
-                ? t('dashboard.currencyLoading')
-                : t('dashboard.currencyBadge', { currency: preferredCurrency })}
+              {currencyLoading || ratesLoading
+                ? t('dashboard.fxMonitoringLoading', {
+                    defaultValue: 'Loading currency preferences...',
+                  })
+                : `${t('dashboard.currencyBadge', {
+                    currency: preferredCurrency,
+                    defaultValue: `Currency: ${preferredCurrency}`,
+                  })} · ${
+                    ratesActive
+                      ? t('dashboard.fxBadgeActive', { defaultValue: 'FX rates active' })
+                      : t('dashboard.fxBadgeInactive', { defaultValue: 'FX rates fallback' })
+                  }`}
             </p>
           )}
         </div>

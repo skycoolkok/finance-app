@@ -21,3 +21,7 @@ export const setFxRates = httpsCallable<
   { date?: string; rates: Partial<Record<CurrencyCode, number>>; source?: 'manual' | 'api' },
   { date: string; count: number; source: 'manual' | 'api' }
 >(fns, 'setFxRates')
+export const checkFxAdmin = httpsCallable<{ email?: string }, { allowed: boolean }>(
+  fns,
+  'isFxAdmin',
+)

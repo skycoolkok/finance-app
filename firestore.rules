@@ -26,5 +26,10 @@ service cloud.firestore {
       allow update: if isOwner(resource.data) && isOwner(request.resource.data);
       allow delete: if isOwner(resource.data);
     }
+
+    match /fx_rates/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
   }
 }

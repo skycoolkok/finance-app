@@ -133,7 +133,8 @@ Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabl
 ## User Preferences & FX Rates
 
 - Each user document (`users/{uid}`) now supports a `preferredCurrency` field (`'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'`). When absent we default to `TWD`.
+- Configure the FX admin allowlist with `firebase functions:config:set app.fx_admin_emails="a@b.com,c@d.com"` (adjust the emails to match your team).
 - The front end keeps the preference in Firestore **and** `localStorage` so the interface switches currencies immediately even while offline.
 - All monetary display logic runs through `src/lib/money.ts`. Amounts stay persisted in TWD and are formatted/conversion-ready via `formatCurrency(valueTwd, options)`.
-- Currency formatting accepts optional rates (TWD→target). If you omit a rate, the UI falls back to symbol/locale-only formatting (`NT$ 1,234` becomes `$ 1,234` when set to USD but no rate is available).
-- Manual FX rates can be recorded by calling the callable Cloud Function `setFxRates`, which writes to `fx_rates/{dateISO}` with the latest rates. A stubbed `refreshFxRates` scheduled function is ready for future automation.
+- Currency formatting accepts optional rates (TWD→target). If you omit a rate, the UI falls back to symbol/locale-only formatting (`NT$ 1,234` becomes `$ 1,234` when set to USD but no rate is available), so end users still see a sensible format even when rates are missing.
+- Only allowlisted admins can call the callable Cloud Function `setFxRates`; regular clients have read-only access to `fx_rates` through the backend. Manual FX entries land in `fx_rates/{dateISO}` and remain the source of truth until an automated refresh is available.

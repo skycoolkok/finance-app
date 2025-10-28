@@ -18,6 +18,7 @@ import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } 
 import { RESEND_API_KEY, MissingResendApiKeyError, getResendClientOrNull } from './resendClient'
 import { resolveLocaleTag } from './templates'
 import { sendTestEmailGet } from './testMail'
+import { isFxAdmin as isFxAdminEmail } from './lib/admin'
 
 const REGION = 'asia-east1'
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -180,6 +181,12 @@ export const setFxRates = onCall<{
     throw new HttpsError('failed-precondition', 'Authentication is required to update FX rates')
   }
 
+  const emailValue = request.auth?.token?.email
+  const email = typeof emailValue === 'string' ? emailValue.trim() : ''
+  if (!isFxAdminEmail(email)) {
+    throw new HttpsError('permission-denied', 'not admin')
+  }
+
   const payload = request.data ?? {}
   const rawRates = payload.rates
   if (!rawRates || typeof rawRates !== 'object') {
@@ -191,8 +198,12 @@ export const setFxRates = onCall<{
       ? payload.date
       : new Date().toISOString().slice(0, 10)
 
-  const rates = normaliseFxRates(rawRates)
-  if (Object.keys(rates).length === 1 && rates.TWD === 1) {
+  const normalisedRates = normaliseFxRates(rawRates)
+  const filteredRates = Object.fromEntries(
+    Object.entries(normalisedRates).filter(([code]) => code !== 'TWD'),
+  )
+
+  if (Object.keys(filteredRates).length === 0) {
     throw new HttpsError('invalid-argument', 'At least one non-TWD rate must be provided')
   }
 
@@ -202,16 +213,35 @@ export const setFxRates = onCall<{
   await docRef.set(
     {
       base: 'TWD',
-      rates,
+      rates: filteredRates,
       source,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true },
   )
 
-  logger.info('FX rates updated', { dateISO, count: Object.keys(rates).length, source })
+  logger.info('FX rates updated', { dateISO, count: Object.keys(filteredRates).length, source })
 
-  return { date: dateISO, count: Object.keys(rates).length, source }
+  return { date: dateISO, count: Object.keys(filteredRates).length, source }
+})
+
+export const isFxAdmin = onCall<{ email?: string } | null>(HTTPS_OPTIONS, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('failed-precondition', 'Authentication is required to check admin status')
+  }
+
+  const authEmail = request.auth?.token?.email
+  const emailValue =
+    typeof authEmail === 'string'
+      ? authEmail
+      : typeof request.data?.email === 'string'
+        ? request.data.email
+        : ''
+
+  const email = emailValue.trim()
+  const allowed = isFxAdminEmail(email)
+
+  return { allowed }
 })
 
 export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
