@@ -7,7 +7,8 @@
     "node": "20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p .",
+    "ci": "npm ci",
     "clean": "rimraf lib",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "predeploy": "npm run clean && npm ci && npm run build"
