@@ -1,6 +1,7 @@
 import { logger } from 'firebase-functions'
 import { onRequest } from 'firebase-functions/v2/https'
 
+import { APP_BASE_URL, OPEN_PIXEL_URL } from '../params'
 import { getAppBaseUrl, getOpenPixelUrl } from '../notif/env'
 
 const GIF_BASE64 = 'R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=='
@@ -11,6 +12,7 @@ const TRACKING_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 30,
+  secrets: [APP_BASE_URL, OPEN_PIXEL_URL],
 }
 
 export const openPixel = onRequest(TRACKING_OPTIONS, async (req, res) => {

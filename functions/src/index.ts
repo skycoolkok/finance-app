@@ -1,8 +1,6 @@
-import 'dotenv/config'
-
 import * as admin from 'firebase-admin'
 import { logger } from 'firebase-functions'
-import { HttpsError, onCall } from 'firebase-functions/v2/https'
+import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 
 import {
@@ -15,10 +13,11 @@ import { getAppBaseUrl } from './notif/env'
 import { sendBudgetAlert } from './notif/budgetEngine'
 import { sanitizeForKey } from './notif/utils'
 import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
-import { RESEND_API_KEY, MissingResendApiKeyError, getResendClientOrNull } from './resendClient'
+import { MissingResendApiKeyError, getResendClientOrNull } from './resendClient'
 import { resolveLocaleTag } from './templates'
 import { sendTestEmailGet } from './testMail'
 import { isFxAdmin as isFxAdminEmail } from './lib/admin'
+import { APP_BASE_URL, FX_ADMIN_EMAILS, RESEND_API_KEY } from './params'
 
 const REGION = 'asia-east1'
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -28,7 +27,7 @@ const HTTPS_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY],
+  secrets: [RESEND_API_KEY, APP_BASE_URL, FX_ADMIN_EMAILS],
 }
 
 const SCHEDULE_OPTIONS = {
@@ -38,7 +37,7 @@ const SCHEDULE_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY],
+  secrets: [RESEND_API_KEY, APP_BASE_URL, FX_ADMIN_EMAILS],
 }
 
 const FX_SCHEDULE_OPTIONS = {
@@ -56,7 +55,21 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore()
 const messaging = admin.messaging()
-const APP_BASE_URL = getAppBaseUrl()
+
+export const ping = onRequest({ region: REGION }, (_request, response) => {
+  response.status(200).send('ok')
+})
+
+export const pingCallable = onCall<{ message?: unknown } | null>(
+  { region: REGION },
+  async (request) => ({
+    ok: true,
+    echo: request.data ?? null,
+    auth: {
+      uid: request.auth?.uid ?? null,
+    },
+  }),
+)
 
 type FxCurrencyCode = 'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'
 
@@ -147,6 +160,7 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
   }
 
   const locale = await fetchUserLocale({ firestore, userId })
+  const appBaseUrl = getAppBaseUrl()
   const response = await messaging.sendEachForMulticast({
     tokens,
     notification: {
@@ -155,7 +169,7 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
     },
     data: {
       type: 'test-push',
-      url: APP_BASE_URL,
+      url: appBaseUrl,
       locale,
     },
   })
@@ -266,13 +280,14 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
     }
 
     const locale = await fetchUserLocale({ firestore, userId })
+    const appBaseUrl = getAppBaseUrl()
 
     try {
       await sendMail({
         to: email,
         subject: TEST_EMAIL_SUBJECT,
-        html: buildTestEmailHtml(APP_BASE_URL),
-        text: buildTestEmailText(APP_BASE_URL),
+        html: buildTestEmailHtml(appBaseUrl),
+        text: buildTestEmailText(appBaseUrl),
       })
     } catch (error) {
       if (error instanceof MissingResendApiKeyError) {
@@ -332,12 +347,13 @@ export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
     logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.')
   }
 
+  const baseUrl = getAppBaseUrl()
   const notificationEngine = new NotificationEngine({
     firestore,
     messaging,
     resendClient,
     notificationWindowMs: NOTIFICATION_WINDOW_MS,
-    baseUrl: APP_BASE_URL,
+    baseUrl,
     logger,
   })
 
@@ -347,7 +363,6 @@ export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
 
 export { sendTestEmailGet }
 
-export * from './new-apis'
 export { openPixel } from './tracking/openPixel'
 export { clickRedirect } from './tracking/clickRedirect'
 

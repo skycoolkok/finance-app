@@ -4,12 +4,14 @@ exports.clickRedirect = void 0;
 exports.resolveClickRedirectUrl = resolveClickRedirectUrl;
 const firebase_functions_1 = require("firebase-functions");
 const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("../params");
 const env_1 = require("../notif/env");
 const TRACKING_OPTIONS = {
     region: 'asia-east1',
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 30,
+    secrets: [params_1.APP_BASE_URL, params_1.CLICK_REDIRECT_URL],
 };
 exports.clickRedirect = (0, https_1.onRequest)(TRACKING_OPTIONS, async (req, res) => {
     const targetUrl = resolveTargetUrl(req.query);

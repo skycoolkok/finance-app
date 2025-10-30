@@ -284,7 +284,7 @@ class NotificationEngine {
             .where('userId', '==', userId)
             .get();
         const tokens = snapshot.docs
-            .map(docSnapshot => docSnapshot.data().token)
+            .map((docSnapshot) => docSnapshot.data().token)
             .filter((token) => typeof token === 'string' && token.length > 0);
         this.tokenCache.set(userId, tokens);
         return tokens;

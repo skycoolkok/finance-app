@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const CURRENCY = 'TWD';
 const templates = {
-    dueReminder: input => {
+    dueReminder: (input) => {
         const url = resolveUrl(input.baseUrl, '/cards');
         const amount = formatCurrency(input.amount);
         const dueDate = formatDate(input.dueDate);
@@ -12,16 +12,12 @@ const templates = {
             subject,
             summary,
             url,
-            facts: [
-                `卡片：${input.cardLabel}`,
-                `繳款日：${dueDate}`,
-                `待繳金額：${amount}`,
-            ],
+            facts: [`卡片：${input.cardLabel}`, `繳款日：${dueDate}`, `待繳金額：${amount}`],
             ctaText: '查看卡片明細',
             baseUrl: input.baseUrl,
         });
     },
-    utilizationAlert: input => {
+    utilizationAlert: (input) => {
         const url = resolveUrl(input.baseUrl, '/cards');
         const percent = Math.round(input.utilization * 100);
         const limit = formatCurrency(input.limit);
@@ -33,16 +29,12 @@ const templates = {
             subject,
             summary,
             url,
-            facts: [
-                `卡片：${input.cardLabel}`,
-                `目前餘額：${amount}`,
-                `總額度：${limit}`,
-            ],
+            facts: [`卡片：${input.cardLabel}`, `目前餘額：${amount}`, `總額度：${limit}`],
             ctaText: '前往卡片總覽',
             baseUrl: input.baseUrl,
         });
     },
-    budgetAlert: input => {
+    budgetAlert: (input) => {
         const url = resolveUrl(input.baseUrl, '/budgets');
         const spent = formatCurrency(input.spent);
         const limit = formatCurrency(input.limit);
@@ -55,11 +47,7 @@ const templates = {
             subject,
             summary,
             url,
-            facts: [
-                `預算：${input.budgetLabel}`,
-                `已使用：${spent}`,
-                `預算上限：${limit}`,
-            ],
+            facts: [`預算：${input.budgetLabel}`, `已使用：${spent}`, `預算上限：${limit}`],
             ctaText: '檢視預算詳情',
             baseUrl: input.baseUrl,
         });

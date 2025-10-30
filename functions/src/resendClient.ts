@@ -1,7 +1,5 @@
-import { defineSecret } from 'firebase-functions/params'
 import { Resend } from 'resend'
-
-export const RESEND_API_KEY = defineSecret('RESEND_API_KEY')
+import { RESEND_API_KEY } from './params'
 
 let cachedClient: Resend | null = null
 let cachedKey: string | null = null

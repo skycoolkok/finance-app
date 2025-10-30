@@ -6,13 +6,14 @@ const https_1 = require("firebase-functions/v2/https");
 const mailer_1 = require("./mailer");
 const env_1 = require("./notif/env");
 const resendClient_1 = require("./resendClient");
+const params_1 = require("./params");
 const REGION = 'asia-east1';
 const HTTPS_OPTIONS = {
     region: REGION,
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [resendClient_1.RESEND_API_KEY],
+    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL],
 };
 exports.sendTestEmailGet = (0, https_1.onRequest)(HTTPS_OPTIONS, async (req, res) => {
     if (req.method !== 'GET') {

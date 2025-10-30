@@ -1,23 +1,39 @@
-import { config as functionsConfig } from 'firebase-functions'
+import { FX_ADMIN_EMAILS } from '../params'
 
 export function isFxAdmin(email?: string): boolean {
-  let configuredList = ''
-  try {
-    configuredList = functionsConfig().app?.fx_admin_emails ?? ''
-  } catch {
-    configuredList = ''
-  }
-
-  const raw = process.env.FX_ADMIN_EMAILS ?? configuredList ?? ''
+  const allowList = readAdminEmailList()
 
   if (!email) {
     return false
   }
 
   const normalizedEmail = email.trim().toLowerCase()
-  return raw
+  return allowList.includes(normalizedEmail)
+}
+
+function readAdminEmailList(): string[] {
+  const fromSecret = readSecretList()
+  if (fromSecret.length > 0) {
+    return fromSecret
+  }
+
+  return (process.env.FX_ADMIN_EMAILS ?? '')
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
-    .includes(normalizedEmail)
+}
+
+function readSecretList(): string[] {
+  try {
+    const value = FX_ADMIN_EMAILS.value()
+    if (!value) {
+      return []
+    }
+    return value
+      .split(',')
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean)
+  } catch {
+    return []
+  }
 }

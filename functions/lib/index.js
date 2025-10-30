@@ -32,12 +32,8 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clickRedirect = exports.openPixel = exports.sendTestEmailGet = exports.scheduledBudget = exports.setUserLocale = exports.sendTestEmail = exports.sendTestPush = exports.registerToken = void 0;
-require("dotenv/config");
+exports.clickRedirect = exports.openPixel = exports.sendTestEmailGet = exports.scheduledBudget = exports.refreshFxRates = exports.setUserLocale = exports.sendTestEmail = exports.isFxAdmin = exports.setFxRates = exports.sendTestPush = exports.registerToken = exports.pingCallable = exports.ping = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firebase_functions_1 = require("firebase-functions");
 const https_1 = require("firebase-functions/v2/https");
@@ -51,6 +47,8 @@ const resendClient_1 = require("./resendClient");
 const templates_1 = require("./templates");
 const testMail_1 = require("./testMail");
 Object.defineProperty(exports, "sendTestEmailGet", { enumerable: true, get: function () { return testMail_1.sendTestEmailGet; } });
+const admin_1 = require("./lib/admin");
+const params_1 = require("./params");
 const REGION = 'asia-east1';
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const HTTPS_OPTIONS = {
@@ -58,7 +56,7 @@ const HTTPS_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [resendClient_1.RESEND_API_KEY],
+    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL, params_1.FX_ADMIN_EMAILS],
 };
 const SCHEDULE_OPTIONS = {
     region: REGION,
@@ -67,14 +65,53 @@ const SCHEDULE_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [resendClient_1.RESEND_API_KEY],
+    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL, params_1.FX_ADMIN_EMAILS],
+};
+const FX_SCHEDULE_OPTIONS = {
+    region: REGION,
+    schedule: 'every day 04:00',
+    timeZone: 'Asia/Taipei',
+    cpu: 1,
+    memory: '128MiB',
+    timeoutSeconds: 60,
 };
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const firestore = admin.firestore();
 const messaging = admin.messaging();
-const APP_BASE_URL = (0, env_1.getAppBaseUrl)();
+exports.ping = (0, https_1.onRequest)({ region: REGION }, (_request, response) => {
+    response.status(200).send('ok');
+});
+exports.pingCallable = (0, https_1.onCall)({ region: REGION }, async (request) => ({
+    ok: true,
+    echo: request.data ?? null,
+    auth: {
+        uid: request.auth?.uid ?? null,
+    },
+}));
+const SUPPORTED_FX_CODES = new Set(['TWD', 'USD', 'EUR', 'GBP', 'JPY', 'KRW']);
+function isFxCurrency(value) {
+    return SUPPORTED_FX_CODES.has(value);
+}
+function normaliseFxRates(input) {
+    const rates = {};
+    if (input && typeof input === 'object') {
+        for (const [code, value] of Object.entries(input)) {
+            const upper = code.toUpperCase();
+            if (!isFxCurrency(upper)) {
+                continue;
+            }
+            const numeric = typeof value === 'number' ? value : Number(value);
+            if (!Number.isFinite(numeric) || numeric <= 0) {
+                continue;
+            }
+            rates[upper] = numeric;
+        }
+    }
+    rates.TWD = 1;
+    return rates;
+}
 exports.registerToken = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     const token = typeof request.data?.token === 'string' ? request.data.token.trim() : '';
     if (!token) {
@@ -120,6 +157,7 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         throw new https_1.HttpsError('failed-precondition', 'No device tokens registered for this user');
     }
     const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
+    const appBaseUrl = (0, env_1.getAppBaseUrl)();
     const response = await messaging.sendEachForMulticast({
         tokens,
         notification: {
@@ -128,7 +166,7 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         },
         data: {
             type: 'test-push',
-            url: APP_BASE_URL,
+            url: appBaseUrl,
             locale,
         },
     });
@@ -141,6 +179,53 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         locale,
     });
     return { successCount: response.successCount, failureCount: response.failureCount };
+});
+exports.setFxRates = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    if (!request.auth?.uid) {
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to update FX rates');
+    }
+    const emailValue = request.auth?.token?.email;
+    const email = typeof emailValue === 'string' ? emailValue.trim() : '';
+    if (!(0, admin_1.isFxAdmin)(email)) {
+        throw new https_1.HttpsError('permission-denied', 'not admin');
+    }
+    const payload = request.data ?? {};
+    const rawRates = payload.rates;
+    if (!rawRates || typeof rawRates !== 'object') {
+        throw new https_1.HttpsError('invalid-argument', 'rates object is required');
+    }
+    const dateISO = typeof payload.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+        ? payload.date
+        : new Date().toISOString().slice(0, 10);
+    const normalisedRates = normaliseFxRates(rawRates);
+    const filteredRates = Object.fromEntries(Object.entries(normalisedRates).filter(([code]) => code !== 'TWD'));
+    if (Object.keys(filteredRates).length === 0) {
+        throw new https_1.HttpsError('invalid-argument', 'At least one non-TWD rate must be provided');
+    }
+    const source = payload.source === 'api' ? 'api' : 'manual';
+    const docRef = firestore.collection('fx_rates').doc(dateISO);
+    await docRef.set({
+        base: 'TWD',
+        rates: filteredRates,
+        source,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    firebase_functions_1.logger.info('FX rates updated', { dateISO, count: Object.keys(filteredRates).length, source });
+    return { date: dateISO, count: Object.keys(filteredRates).length, source };
+});
+exports.isFxAdmin = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    if (!request.auth?.uid) {
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to check admin status');
+    }
+    const authEmail = request.auth?.token?.email;
+    const emailValue = typeof authEmail === 'string'
+        ? authEmail
+        : typeof request.data?.email === 'string'
+            ? request.data.email
+            : '';
+    const email = emailValue.trim();
+    const allowed = (0, admin_1.isFxAdmin)(email);
+    return { allowed };
 });
 exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     const userId = request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '');
@@ -157,12 +242,13 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         throw new https_1.HttpsError('failed-precondition', 'No email address available for this user');
     }
     const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
+    const appBaseUrl = (0, env_1.getAppBaseUrl)();
     try {
         await (0, mailer_1.sendMail)({
             to: email,
             subject: mailer_1.TEST_EMAIL_SUBJECT,
-            html: (0, mailer_1.buildTestEmailHtml)(APP_BASE_URL),
-            text: (0, mailer_1.buildTestEmailText)(APP_BASE_URL),
+            html: (0, mailer_1.buildTestEmailHtml)(appBaseUrl),
+            text: (0, mailer_1.buildTestEmailText)(appBaseUrl),
         });
     }
     catch (error) {
@@ -195,32 +281,32 @@ exports.setUserLocale = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         throw new https_1.HttpsError('invalid-argument', 'locale is required');
     }
     const normalized = (0, templates_1.resolveLocaleTag)(localeInput);
-    await firestore
-        .collection('users')
-        .doc(userId)
-        .set({
+    await firestore.collection('users').doc(userId).set({
         locale: normalized,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
     return { locale: normalized };
+});
+exports.refreshFxRates = (0, scheduler_1.onSchedule)(FX_SCHEDULE_OPTIONS, async () => {
+    firebase_functions_1.logger.info('refreshFxRates stub executed - configure an external provider to enable updates.');
 });
 exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async () => {
     const resendClient = await (0, resendClient_1.getResendClientOrNull)();
     if (!resendClient) {
         firebase_functions_1.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.');
     }
+    const baseUrl = (0, env_1.getAppBaseUrl)();
     const notificationEngine = new engine_1.NotificationEngine({
         firestore,
         messaging,
         resendClient,
         notificationWindowMs: NOTIFICATION_WINDOW_MS,
-        baseUrl: APP_BASE_URL,
+        baseUrl,
         logger: firebase_functions_1.logger,
     });
     await processCardReminders(notificationEngine);
     await processBudgetAlerts(notificationEngine);
 });
-__exportStar(require("./new-apis"), exports);
 var openPixel_1 = require("./tracking/openPixel");
 Object.defineProperty(exports, "openPixel", { enumerable: true, get: function () { return openPixel_1.openPixel; } });
 var clickRedirect_1 = require("./tracking/clickRedirect");
@@ -228,7 +314,7 @@ Object.defineProperty(exports, "clickRedirect", { enumerable: true, get: functio
 async function fetchUserTokens(userId) {
     const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get();
     return snapshot.docs
-        .map(docSnapshot => docSnapshot.data().token)
+        .map((docSnapshot) => docSnapshot.data().token)
         .filter((token) => Boolean(token));
 }
 async function sumTransactions({ userId, cardId, start, end, }) {
@@ -371,9 +457,7 @@ async function processBudgetAlerts(notificationEngine) {
     }
     for (const budgetDoc of budgetsSnapshot.docs) {
         const data = budgetDoc.data();
-        const userId = typeof data.userId === 'string' && data.userId.trim().length > 0
-            ? data.userId.trim()
-            : null;
+        const userId = typeof data.userId === 'string' && data.userId.trim().length > 0 ? data.userId.trim() : null;
         if (!userId) {
             continue;
         }
@@ -406,12 +490,12 @@ function toPositiveNumber(value) {
 function normalizeThresholds(value) {
     const raw = Array.isArray(value) ? value : value != null ? [value] : [80, 100];
     const thresholds = raw
-        .map(entry => {
+        .map((entry) => {
         const numeric = typeof entry === 'number' ? entry : Number(entry);
         return Number.isFinite(numeric) ? numeric : null;
     })
         .filter((entry) => entry !== null)
-        .map(entry => Math.max(0, entry));
+        .map((entry) => Math.max(0, entry));
     if (thresholds.length === 0) {
         return [80, 100];
     }

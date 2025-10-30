@@ -39,7 +39,7 @@ function renderFromCache(entry, context) {
             validationLevel: 'soft',
         });
         if (result.errors?.length) {
-            throw new Error(`MJML render failed: ${result.errors.map(error => error.formattedMessage).join('; ')}`);
+            throw new Error(`MJML render failed: ${result.errors.map((error) => error.formattedMessage).join('; ')}`);
         }
         return result.html;
     }

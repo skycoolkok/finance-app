@@ -1,4 +1,5 @@
-import { config as functionsConfig, logger } from 'firebase-functions'
+import { logger } from 'firebase-functions'
+import { APP_BASE_URL, CLICK_REDIRECT_URL, OPEN_PIXEL_URL } from '../params'
 
 const FALLBACK_APP_BASE_URL = 'https://finance-app-sigma-jet.vercel.app'
 const FALLBACK_OPEN_PIXEL_URL = `${FALLBACK_APP_BASE_URL}/api/track/open`
@@ -13,15 +14,8 @@ export function getAppBaseUrl(): string {
     return cachedBaseUrl
   }
 
-  const configUrl = normalizeBaseUrl(
-    readAppConfigValue('APP_BASE_URL') ?? readAppConfigValue('BASE_URL'),
-  )
-  if (configUrl) {
-    cachedBaseUrl = configUrl
-    return cachedBaseUrl
-  }
-
-  const envUrl = normalizeBaseUrl(process.env.APP_BASE_URL)
+  const secretValue = readAppBaseUrlSecret()
+  const envUrl = normalizeBaseUrl(secretValue ?? process.env.APP_BASE_URL)
   if (envUrl) {
     cachedBaseUrl = envUrl
     return cachedBaseUrl
@@ -39,9 +33,9 @@ export function getOpenPixelUrl(): string | undefined {
     return cachedOpenPixelUrl || undefined
   }
 
-  const configured =
-    normalizeTrackingUrl(readAppConfigValue('OPEN_PIXEL_URL')) ||
-    normalizeTrackingUrl(process.env.OPEN_PIXEL_URL)
+  const secretUrl = normalizeTrackingUrl(readOpenPixelSecret())
+  const envUrl = normalizeTrackingUrl(process.env.OPEN_PIXEL_URL)
+  const configured = secretUrl ?? envUrl
 
   cachedOpenPixelUrl = configured ?? ''
   if (!configured) {
@@ -55,9 +49,9 @@ export function getClickRedirectUrl(): string | undefined {
     return cachedClickRedirectUrl || undefined
   }
 
-  const configured =
-    normalizeTrackingUrl(readAppConfigValue('CLICK_REDIRECT_URL')) ||
-    normalizeTrackingUrl(process.env.CLICK_REDIRECT_URL)
+  const secretUrl = normalizeTrackingUrl(readClickRedirectSecret())
+  const envUrl = normalizeTrackingUrl(process.env.CLICK_REDIRECT_URL)
+  const configured = secretUrl ?? envUrl
 
   cachedClickRedirectUrl = configured ?? ''
   if (!configured) {
@@ -96,32 +90,38 @@ function normalizeTrackingUrl(value: string | undefined): string | undefined {
   }
 }
 
-function readAppConfigValue(key: string): string | undefined {
+function readAppBaseUrlSecret(): string | undefined {
   try {
-    const config = functionsConfig()
-    const appConfig = config?.app
-    if (!appConfig) {
-      return undefined
-    }
-
-    const direct = appConfig[key]
-    if (typeof direct === 'string' && direct.trim().length > 0) {
-      return direct
-    }
-
-    const normalisedKey = key.toLowerCase()
-    const lowerValue = appConfig[normalisedKey]
-    if (typeof lowerValue === 'string' && lowerValue.trim().length > 0) {
-      return lowerValue
-    }
-
-    const snakeKey = key.replace(/([A-Z])/g, (_, letter: string) => `_${letter.toLowerCase()}`)
-    const snakeValue = appConfig[snakeKey]
-    if (typeof snakeValue === 'string' && snakeValue.trim().length > 0) {
-      return snakeValue
+    const value = APP_BASE_URL.value()
+    if (value && value.trim()) {
+      return value
     }
   } catch (error) {
-    logger.debug('Unable to read Firebase Functions config', { error })
+    logger.debug('Unable to read APP_BASE_URL secret', { error })
+  }
+  return undefined
+}
+
+function readOpenPixelSecret(): string | undefined {
+  try {
+    const value = OPEN_PIXEL_URL.value()
+    if (value && value.trim()) {
+      return value
+    }
+  } catch (error) {
+    logger.debug('Unable to read OPEN_PIXEL_URL secret', { error })
+  }
+  return undefined
+}
+
+function readClickRedirectSecret(): string | undefined {
+  try {
+    const value = CLICK_REDIRECT_URL.value()
+    if (value && value.trim()) {
+      return value
+    }
+  } catch (error) {
+    logger.debug('Unable to read CLICK_REDIRECT_URL secret', { error })
   }
   return undefined
 }

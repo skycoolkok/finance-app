@@ -3,7 +3,8 @@ import { onRequest } from 'firebase-functions/v2/https'
 
 import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
 import { getAppBaseUrl } from './notif/env'
-import { MissingResendApiKeyError, RESEND_API_KEY } from './resendClient'
+import { MissingResendApiKeyError } from './resendClient'
+import { APP_BASE_URL, RESEND_API_KEY } from './params'
 
 const REGION = 'asia-east1'
 
@@ -12,7 +13,7 @@ const HTTPS_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY],
+  secrets: [RESEND_API_KEY, APP_BASE_URL],
 }
 
 export const sendTestEmailGet = onRequest(HTTPS_OPTIONS, async (req, res) => {
