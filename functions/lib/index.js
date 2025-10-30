@@ -38,17 +38,23 @@ const admin = __importStar(require("firebase-admin"));
 const firebase_functions_1 = require("firebase-functions");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
-const engine_1 = require("./notif/engine");
 const env_1 = require("./notif/env");
 const budgetEngine_1 = require("./notif/budgetEngine");
 const utils_1 = require("./notif/utils");
-const mailer_1 = require("./mailer");
-const resendClient_1 = require("./resendClient");
-const templates_1 = require("./templates");
-const testMail_1 = require("./testMail");
-Object.defineProperty(exports, "sendTestEmailGet", { enumerable: true, get: function () { return testMail_1.sendTestEmailGet; } });
 const admin_1 = require("./lib/admin");
+const lazy_1 = require("./lib/lazy");
 const params_1 = require("./params");
+const getNotificationModule = (0, lazy_1.memo)(() => require('./notif/engine'));
+const getMailerModule = (0, lazy_1.memo)(() => require('./mailer'));
+const getTemplatesModule = (0, lazy_1.memo)(() => require('./templates'));
+const getTestMailModule = (0, lazy_1.memo)(() => require('./testMail'));
+const getResendModule = (0, lazy_1.memo)(() => require('./resendClient'));
+const getNotificationEngineClass = () => getNotificationModule().NotificationEngine;
+const fetchUserLocaleLazy = (options) => getNotificationModule().fetchUserLocale(options);
+const logNotificationRecordLazy = (firestore, record) => getNotificationModule().logNotificationRecord(firestore, record);
+const resolveLocaleTagLazy = (locale) => getTemplatesModule().resolveLocaleTag(locale);
+const getMailer = () => getMailerModule();
+const getSendTestEmailGet = () => getTestMailModule().sendTestEmailGet;
 const REGION = 'asia-east1';
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const HTTPS_OPTIONS = {
@@ -78,8 +84,8 @@ const FX_SCHEDULE_OPTIONS = {
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-const firestore = admin.firestore();
-const messaging = admin.messaging();
+const getFirestore = (0, lazy_1.memo)(() => admin.firestore());
+const getMessaging = (0, lazy_1.memo)(() => admin.messaging());
 exports.ping = (0, https_1.onRequest)({ region: REGION }, (_request, response) => {
     response.status(200).send('ok');
 });
@@ -123,8 +129,8 @@ exports.registerToken = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     }
     const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown';
     const sanitizedId = (0, utils_1.sanitizeForKey)(`${userId}:${token}`);
-    const tokenRef = firestore.collection('user_tokens').doc(sanitizedId);
-    await firestore.runTransaction(async (tx) => {
+    const tokenRef = getFirestore().collection('user_tokens').doc(sanitizedId);
+    await getFirestore().runTransaction(async (tx) => {
         const snapshot = await tx.get(tokenRef);
         const timestamp = admin.firestore.FieldValue.serverTimestamp();
         if (snapshot.exists) {
@@ -156,9 +162,9 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (tokens.length === 0) {
         throw new https_1.HttpsError('failed-precondition', 'No device tokens registered for this user');
     }
-    const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
+    const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId });
     const appBaseUrl = (0, env_1.getAppBaseUrl)();
-    const response = await messaging.sendEachForMulticast({
+    const response = await getMessaging().sendEachForMulticast({
         tokens,
         notification: {
             title: 'Finance App',
@@ -170,7 +176,7 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
             locale,
         },
     });
-    await (0, engine_1.logNotificationRecord)(firestore, {
+    await logNotificationRecordLazy(getFirestore(), {
         userId,
         type: 'test-push',
         message: 'Test push notification dispatched.',
@@ -203,7 +209,7 @@ exports.setFxRates = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         throw new https_1.HttpsError('invalid-argument', 'At least one non-TWD rate must be provided');
     }
     const source = payload.source === 'api' ? 'api' : 'manual';
-    const docRef = firestore.collection('fx_rates').doc(dateISO);
+    const docRef = getFirestore().collection('fx_rates').doc(dateISO);
     await docRef.set({
         base: 'TWD',
         rates: filteredRates,
@@ -241,18 +247,20 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!email) {
         throw new https_1.HttpsError('failed-precondition', 'No email address available for this user');
     }
-    const locale = await (0, engine_1.fetchUserLocale)({ firestore, userId });
+    const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId });
     const appBaseUrl = (0, env_1.getAppBaseUrl)();
+    const mailer = getMailer();
+    const resendModule = getResendModule();
     try {
-        await (0, mailer_1.sendMail)({
+        await mailer.sendMail({
             to: email,
-            subject: mailer_1.TEST_EMAIL_SUBJECT,
-            html: (0, mailer_1.buildTestEmailHtml)(appBaseUrl),
-            text: (0, mailer_1.buildTestEmailText)(appBaseUrl),
+            subject: mailer.TEST_EMAIL_SUBJECT,
+            html: mailer.buildTestEmailHtml(appBaseUrl),
+            text: mailer.buildTestEmailText(appBaseUrl),
         });
     }
     catch (error) {
-        if (error instanceof resendClient_1.MissingResendApiKeyError) {
+        if (error instanceof resendModule.MissingResendApiKeyError) {
             throw new https_1.HttpsError('failed-precondition', 'RESEND_API_KEY is not configured');
         }
         firebase_functions_1.logger.error('Failed to send test email.', normalizeError(error), {
@@ -261,7 +269,7 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         });
         throw new https_1.HttpsError('internal', 'Unable to send test email');
     }
-    await (0, engine_1.logNotificationRecord)(firestore, {
+    await logNotificationRecordLazy(getFirestore(), {
         userId,
         type: 'test-email',
         message: 'Test email notification dispatched.',
@@ -280,8 +288,8 @@ exports.setUserLocale = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!localeInput) {
         throw new https_1.HttpsError('invalid-argument', 'locale is required');
     }
-    const normalized = (0, templates_1.resolveLocaleTag)(localeInput);
-    await firestore.collection('users').doc(userId).set({
+    const normalized = resolveLocaleTagLazy(localeInput);
+    await getFirestore().collection('users').doc(userId).set({
         locale: normalized,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -291,14 +299,16 @@ exports.refreshFxRates = (0, scheduler_1.onSchedule)(FX_SCHEDULE_OPTIONS, async 
     firebase_functions_1.logger.info('refreshFxRates stub executed - configure an external provider to enable updates.');
 });
 exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async () => {
-    const resendClient = await (0, resendClient_1.getResendClientOrNull)();
+    const resendModule = getResendModule();
+    const resendClient = await resendModule.getResendClientOrNull();
     if (!resendClient) {
         firebase_functions_1.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.');
     }
     const baseUrl = (0, env_1.getAppBaseUrl)();
-    const notificationEngine = new engine_1.NotificationEngine({
-        firestore,
-        messaging,
+    const NotificationEngineCtor = getNotificationEngineClass();
+    const notificationEngine = new NotificationEngineCtor({
+        firestore: getFirestore(),
+        messaging: getMessaging(),
         resendClient,
         notificationWindowMs: NOTIFICATION_WINDOW_MS,
         baseUrl,
@@ -307,12 +317,16 @@ exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async ()
     await processCardReminders(notificationEngine);
     await processBudgetAlerts(notificationEngine);
 });
+exports.sendTestEmailGet = ((...args) => getSendTestEmailGet()(...args));
 var openPixel_1 = require("./tracking/openPixel");
 Object.defineProperty(exports, "openPixel", { enumerable: true, get: function () { return openPixel_1.openPixel; } });
 var clickRedirect_1 = require("./tracking/clickRedirect");
 Object.defineProperty(exports, "clickRedirect", { enumerable: true, get: function () { return clickRedirect_1.clickRedirect; } });
 async function fetchUserTokens(userId) {
-    const snapshot = await firestore.collection('user_tokens').where('userId', '==', userId).get();
+    const snapshot = await getFirestore()
+        .collection('user_tokens')
+        .where('userId', '==', userId)
+        .get();
     return snapshot.docs
         .map((docSnapshot) => docSnapshot.data().token)
         .filter((token) => Boolean(token));
@@ -320,7 +334,7 @@ async function fetchUserTokens(userId) {
 async function sumTransactions({ userId, cardId, start, end, }) {
     const startISO = toISODate(start);
     const endISO = toISODate(end);
-    const snapshot = await firestore
+    const snapshot = await getFirestore()
         .collection('transactions')
         .where('userId', '==', userId)
         .where('cardId', '==', cardId)
@@ -363,7 +377,7 @@ function toISODate(date) {
     return normalizeDate(date).toISOString().split('T')[0];
 }
 async function processCardReminders(notificationEngine) {
-    const cardsSnapshot = await firestore.collection('cards').get();
+    const cardsSnapshot = await getFirestore().collection('cards').get();
     if (cardsSnapshot.empty) {
         firebase_functions_1.logger.info('No cards found for reminder processing.');
         return;
@@ -450,7 +464,7 @@ async function processCardReminders(notificationEngine) {
     }
 }
 async function processBudgetAlerts(notificationEngine) {
-    const budgetsSnapshot = await firestore.collection('budgets').get();
+    const budgetsSnapshot = await getFirestore().collection('budgets').get();
     if (budgetsSnapshot.empty) {
         firebase_functions_1.logger.info('No budgets found for alert processing.');
         return;
