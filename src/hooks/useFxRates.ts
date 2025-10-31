@@ -61,7 +61,7 @@ function resolveUpdatedAt(value: unknown): string | null {
   return null
 }
 
-export function useFxRates(): {
+export function useFxRates(enabled = true): {
   rates: Rates
   loading: boolean
   error: FirestoreError | null
@@ -81,6 +81,29 @@ export function useFxRates(): {
   }))
 
   useEffect(() => {
+    if (!enabled) {
+      setState({
+        rates: fallbackRates,
+        loading: false,
+        error: null,
+        effectiveDate: null,
+        source: null,
+        active: false,
+        updatedAt: null,
+      })
+      return
+    }
+
+    setState((prev) => ({
+      rates: prev.rates,
+      loading: true,
+      error: null,
+      effectiveDate: prev.effectiveDate,
+      source: prev.source,
+      active: prev.active,
+      updatedAt: prev.updatedAt,
+    }))
+
     const ratesQuery = query(collection(db, 'fx_rates'), orderBy('updatedAt', 'desc'), limit(1))
 
     const unsubscribe = onSnapshot(
@@ -168,7 +191,7 @@ export function useFxRates(): {
     return () => {
       unsubscribe()
     }
-  }, [])
+  }, [enabled])
 
   return useMemo(
     () => ({
