@@ -14,7 +14,7 @@ const HTTPS_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL],
+    secrets: [params_1.RESEND_API_KEY],
 };
 exports.sendTestEmailGet = (0, https_1.onRequest)(HTTPS_OPTIONS, async (req, res) => {
     if (req.method !== 'GET') {

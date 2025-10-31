@@ -2,7 +2,7 @@ import { logger } from 'firebase-functions'
 import { onRequest } from 'firebase-functions/v2/https'
 
 import { getAppBaseUrl } from './notif/env'
-import { APP_BASE_URL, RESEND_API_KEY } from './params'
+import { RESEND_API_KEY } from './params'
 import { memo } from './lib/lazy'
 
 const getMailer = memo(() => require('./mailer') as typeof import('./mailer'))
@@ -15,7 +15,7 @@ const HTTPS_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY, APP_BASE_URL],
+  secrets: [RESEND_API_KEY],
 }
 
 export const sendTestEmailGet = onRequest(HTTPS_OPTIONS, async (req, res) => {

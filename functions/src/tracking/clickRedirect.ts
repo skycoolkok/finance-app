@@ -1,7 +1,6 @@
 import { logger } from 'firebase-functions'
 import { onRequest } from 'firebase-functions/v2/https'
 
-import { APP_BASE_URL } from '../params'
 import { getAppBaseUrl, getClickRedirectUrl } from '../notif/env'
 
 const TRACKING_OPTIONS = {
@@ -9,7 +8,6 @@ const TRACKING_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 30,
-  secrets: [APP_BASE_URL],
 }
 
 export const clickRedirect = onRequest(TRACKING_OPTIONS, async (req, res) => {

@@ -62,7 +62,7 @@ const HTTPS_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL, params_1.FX_ADMIN_EMAILS],
+    secrets: [params_1.RESEND_API_KEY, params_1.FX_ADMIN_EMAILS],
 };
 const SCHEDULE_OPTIONS = {
     region: REGION,
@@ -71,7 +71,7 @@ const SCHEDULE_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: [params_1.RESEND_API_KEY, params_1.APP_BASE_URL, params_1.FX_ADMIN_EMAILS],
+    secrets: [params_1.RESEND_API_KEY, params_1.FX_ADMIN_EMAILS],
 };
 const FX_SCHEDULE_OPTIONS = {
     region: REGION,

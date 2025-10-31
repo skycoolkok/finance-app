@@ -1,13 +1,14 @@
 import { logger } from 'firebase-functions'
+
 import {
-  APP_BASE_URL,
+  getBaseUrl,
   getClickRedirectUrl as readClickRedirectUrl,
   getOpenPixelUrl as readOpenPixelUrl,
 } from '../params'
 
-const FALLBACK_APP_BASE_URL = 'https://finance-app-sigma-jet.vercel.app'
-const FALLBACK_OPEN_PIXEL_URL = `${FALLBACK_APP_BASE_URL}/api/track/open`
-const FALLBACK_CLICK_REDIRECT_URL = `${FALLBACK_APP_BASE_URL}/api/track/click`
+const DEFAULT_BASE_URL = 'https://finance-app.local'
+const FALLBACK_OPEN_PIXEL_URL = `${DEFAULT_BASE_URL}/api/track/open`
+const FALLBACK_CLICK_REDIRECT_URL = `${DEFAULT_BASE_URL}/api/track/click`
 
 let cachedBaseUrl: string | null = null
 let cachedOpenPixelUrl: string | null = null
@@ -18,17 +19,18 @@ export function getAppBaseUrl(): string {
     return cachedBaseUrl
   }
 
-  const secretValue = readAppBaseUrlSecret()
-  const envUrl = normalizeBaseUrl(secretValue ?? process.env.APP_BASE_URL)
-  if (envUrl) {
-    cachedBaseUrl = envUrl
+  const baseCandidate = getBaseUrl()
+  const normalized = normalizeBaseUrl(baseCandidate)
+  if (normalized) {
+    cachedBaseUrl = normalized
+    if (baseCandidate === DEFAULT_BASE_URL) {
+      logger.warn('APP_BASE_URL not configured; using fallback URL.', { fallback: normalized })
+    }
     return cachedBaseUrl
   }
 
-  cachedBaseUrl = FALLBACK_APP_BASE_URL
-  logger.warn('APP_BASE_URL not configured; using fallback URL.', {
-    fallback: FALLBACK_APP_BASE_URL,
-  })
+  cachedBaseUrl = DEFAULT_BASE_URL
+  logger.warn('APP_BASE_URL not configured; using fallback URL.', { fallback: DEFAULT_BASE_URL })
   return cachedBaseUrl
 }
 
@@ -90,16 +92,4 @@ function normalizeTrackingUrl(value: string | undefined): string | undefined {
   }
 }
 
-function readAppBaseUrlSecret(): string | undefined {
-  try {
-    const value = APP_BASE_URL.value()
-    if (value && value.trim()) {
-      return value
-    }
-  } catch (error) {
-    logger.debug('Unable to read APP_BASE_URL secret', { error })
-  }
-  return undefined
-}
-
-export { FALLBACK_APP_BASE_URL, FALLBACK_OPEN_PIXEL_URL, FALLBACK_CLICK_REDIRECT_URL }
+export { DEFAULT_BASE_URL as FALLBACK_APP_BASE_URL, FALLBACK_OPEN_PIXEL_URL, FALLBACK_CLICK_REDIRECT_URL }

@@ -9,7 +9,7 @@ import { sendBudgetAlert } from './notif/budgetEngine'
 import { sanitizeForKey } from './notif/utils'
 import { isFxAdmin as isFxAdminEmail } from './lib/admin'
 import { memo } from './lib/lazy'
-import { APP_BASE_URL, FX_ADMIN_EMAILS, RESEND_API_KEY } from './params'
+import { FX_ADMIN_EMAILS, RESEND_API_KEY } from './params'
 
 const getNotificationModule = memo(() => require('./notif/engine') as typeof import('./notif/engine'))
 const getMailerModule = memo(() => require('./mailer') as typeof import('./mailer'))
@@ -38,7 +38,7 @@ const HTTPS_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY, APP_BASE_URL, FX_ADMIN_EMAILS],
+  secrets: [RESEND_API_KEY, FX_ADMIN_EMAILS],
 }
 
 const SCHEDULE_OPTIONS = {
@@ -48,7 +48,7 @@ const SCHEDULE_OPTIONS = {
   cpu: 1,
   memory: '256MiB' as const,
   timeoutSeconds: 60,
-  secrets: [RESEND_API_KEY, APP_BASE_URL, FX_ADMIN_EMAILS],
+  secrets: [RESEND_API_KEY, FX_ADMIN_EMAILS],
 }
 
 const FX_SCHEDULE_OPTIONS = {

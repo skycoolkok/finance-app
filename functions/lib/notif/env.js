@@ -6,11 +6,11 @@ exports.getOpenPixelUrl = getOpenPixelUrl;
 exports.getClickRedirectUrl = getClickRedirectUrl;
 const firebase_functions_1 = require("firebase-functions");
 const params_1 = require("../params");
-const FALLBACK_APP_BASE_URL = 'https://finance-app-sigma-jet.vercel.app';
-exports.FALLBACK_APP_BASE_URL = FALLBACK_APP_BASE_URL;
-const FALLBACK_OPEN_PIXEL_URL = `${FALLBACK_APP_BASE_URL}/api/track/open`;
+const DEFAULT_BASE_URL = 'https://finance-app.local';
+exports.FALLBACK_APP_BASE_URL = DEFAULT_BASE_URL;
+const FALLBACK_OPEN_PIXEL_URL = `${DEFAULT_BASE_URL}/api/track/open`;
 exports.FALLBACK_OPEN_PIXEL_URL = FALLBACK_OPEN_PIXEL_URL;
-const FALLBACK_CLICK_REDIRECT_URL = `${FALLBACK_APP_BASE_URL}/api/track/click`;
+const FALLBACK_CLICK_REDIRECT_URL = `${DEFAULT_BASE_URL}/api/track/click`;
 exports.FALLBACK_CLICK_REDIRECT_URL = FALLBACK_CLICK_REDIRECT_URL;
 let cachedBaseUrl = null;
 let cachedOpenPixelUrl = null;
@@ -19,16 +19,17 @@ function getAppBaseUrl() {
     if (cachedBaseUrl) {
         return cachedBaseUrl;
     }
-    const secretValue = readAppBaseUrlSecret();
-    const envUrl = normalizeBaseUrl(secretValue ?? process.env.APP_BASE_URL);
-    if (envUrl) {
-        cachedBaseUrl = envUrl;
+    const baseCandidate = (0, params_1.getBaseUrl)();
+    const normalized = normalizeBaseUrl(baseCandidate);
+    if (normalized) {
+        cachedBaseUrl = normalized;
+        if (baseCandidate === DEFAULT_BASE_URL) {
+            firebase_functions_1.logger.warn('APP_BASE_URL not configured; using fallback URL.', { fallback: normalized });
+        }
         return cachedBaseUrl;
     }
-    cachedBaseUrl = FALLBACK_APP_BASE_URL;
-    firebase_functions_1.logger.warn('APP_BASE_URL not configured; using fallback URL.', {
-        fallback: FALLBACK_APP_BASE_URL,
-    });
+    cachedBaseUrl = DEFAULT_BASE_URL;
+    firebase_functions_1.logger.warn('APP_BASE_URL not configured; using fallback URL.', { fallback: DEFAULT_BASE_URL });
     return cachedBaseUrl;
 }
 function getOpenPixelUrl() {
@@ -80,16 +81,4 @@ function normalizeTrackingUrl(value) {
         firebase_functions_1.logger.warn('Invalid tracking URL provided; ignoring value.', { value: trimmed });
         return undefined;
     }
-}
-function readAppBaseUrlSecret() {
-    try {
-        const value = params_1.APP_BASE_URL.value();
-        if (value && value.trim()) {
-            return value;
-        }
-    }
-    catch (error) {
-        firebase_functions_1.logger.debug('Unable to read APP_BASE_URL secret', { error });
-    }
-    return undefined;
 }
