@@ -46,12 +46,10 @@ function getClickRedirectUrl() {
     if (cachedClickRedirectUrl !== null) {
         return cachedClickRedirectUrl || undefined;
     }
-    const secretUrl = normalizeTrackingUrl(readClickRedirectSecret());
-    const envUrl = normalizeTrackingUrl(process.env.CLICK_REDIRECT_URL);
-    const configured = secretUrl ?? envUrl;
+    const configured = normalizeTrackingUrl((0, params_1.getClickRedirectUrl)());
     cachedClickRedirectUrl = configured ?? '';
     if (!configured) {
-        firebase_functions_1.logger.info('CLICK_REDIRECT_URL not configured; using default fallback.');
+        firebase_functions_1.logger.debug('CLICK_REDIRECT_URL not configured; skipping click redirect tracking.');
     }
     return cachedClickRedirectUrl || undefined;
 }
@@ -92,18 +90,6 @@ function readAppBaseUrlSecret() {
     }
     catch (error) {
         firebase_functions_1.logger.debug('Unable to read APP_BASE_URL secret', { error });
-    }
-    return undefined;
-}
-function readClickRedirectSecret() {
-    try {
-        const value = params_1.CLICK_REDIRECT_URL.value();
-        if (value && value.trim()) {
-            return value;
-        }
-    }
-    catch (error) {
-        firebase_functions_1.logger.debug('Unable to read CLICK_REDIRECT_URL secret', { error });
     }
     return undefined;
 }

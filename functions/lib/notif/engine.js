@@ -146,7 +146,7 @@ class NotificationEngine {
         const nid = this.firestore.collection('notifications').doc().id;
         const resolvedLocale = (0, templates_1.resolveLocaleTag)(locale);
         const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)();
-        const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)(this.baseUrl);
+        const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)();
         const openUrl = baseOpenPixelUrl
             ? this.appendTrackingParams(baseOpenPixelUrl, {
                 nid,
@@ -156,14 +156,16 @@ class NotificationEngine {
                 channel: 'email',
             })
             : undefined;
-        const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
-            nid,
-            uid: reminder.userId,
-            variant: abVariant,
-            event: reminder.eventKey,
-            channel: 'email',
-            url: content.url,
-        });
+        const clickUrl = baseClickRedirectUrl
+            ? this.appendTrackingParams(baseClickRedirectUrl, {
+                nid,
+                uid: reminder.userId,
+                variant: abVariant,
+                event: reminder.eventKey,
+                channel: 'email',
+                url: content.url,
+            })
+            : content.url;
         const emailContext = {
             ...content.email.context,
             clickUrl,

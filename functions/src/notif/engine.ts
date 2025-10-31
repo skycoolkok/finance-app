@@ -201,7 +201,7 @@ export class NotificationEngine {
     const resolvedLocale = resolveLocaleTag(locale)
 
     const baseOpenPixelUrl = resolveOpenPixelUrl()
-    const baseClickRedirectUrl = resolveClickRedirectUrl(this.baseUrl)
+    const baseClickRedirectUrl = resolveClickRedirectUrl()
 
     const openUrl = baseOpenPixelUrl
       ? this.appendTrackingParams(baseOpenPixelUrl, {
@@ -213,14 +213,16 @@ export class NotificationEngine {
         })
       : undefined
 
-    const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
-      nid,
-      uid: reminder.userId,
-      variant: abVariant,
-      event: reminder.eventKey,
-      channel: 'email',
-      url: content.url,
-    })
+    const clickUrl = baseClickRedirectUrl
+      ? this.appendTrackingParams(baseClickRedirectUrl, {
+          nid,
+          uid: reminder.userId,
+          variant: abVariant,
+          event: reminder.eventKey,
+          channel: 'email',
+          url: content.url,
+        })
+      : content.url
 
     const emailContext = {
       ...content.email.context,

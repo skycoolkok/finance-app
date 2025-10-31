@@ -1,5 +1,9 @@
 import { logger } from 'firebase-functions'
-import { APP_BASE_URL, CLICK_REDIRECT_URL, getOpenPixelUrl as readOpenPixelUrl } from '../params'
+import {
+  APP_BASE_URL,
+  getClickRedirectUrl as readClickRedirectUrl,
+  getOpenPixelUrl as readOpenPixelUrl,
+} from '../params'
 
 const FALLBACK_APP_BASE_URL = 'https://finance-app-sigma-jet.vercel.app'
 const FALLBACK_OPEN_PIXEL_URL = `${FALLBACK_APP_BASE_URL}/api/track/open`
@@ -47,13 +51,11 @@ export function getClickRedirectUrl(): string | undefined {
     return cachedClickRedirectUrl || undefined
   }
 
-  const secretUrl = normalizeTrackingUrl(readClickRedirectSecret())
-  const envUrl = normalizeTrackingUrl(process.env.CLICK_REDIRECT_URL)
-  const configured = secretUrl ?? envUrl
+  const configured = normalizeTrackingUrl(readClickRedirectUrl())
 
   cachedClickRedirectUrl = configured ?? ''
   if (!configured) {
-    logger.info('CLICK_REDIRECT_URL not configured; using default fallback.')
+    logger.debug('CLICK_REDIRECT_URL not configured; skipping click redirect tracking.')
   }
   return cachedClickRedirectUrl || undefined
 }
@@ -96,18 +98,6 @@ function readAppBaseUrlSecret(): string | undefined {
     }
   } catch (error) {
     logger.debug('Unable to read APP_BASE_URL secret', { error })
-  }
-  return undefined
-}
-
-function readClickRedirectSecret(): string | undefined {
-  try {
-    const value = CLICK_REDIRECT_URL.value()
-    if (value && value.trim()) {
-      return value
-    }
-  } catch (error) {
-    logger.debug('Unable to read CLICK_REDIRECT_URL secret', { error })
   }
   return undefined
 }

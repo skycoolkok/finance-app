@@ -11,7 +11,7 @@ const TRACKING_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 30,
-    secrets: [params_1.APP_BASE_URL, params_1.CLICK_REDIRECT_URL],
+    secrets: [params_1.APP_BASE_URL],
 };
 exports.clickRedirect = (0, https_1.onRequest)(TRACKING_OPTIONS, async (req, res) => {
     const targetUrl = resolveTargetUrl(req.query);
@@ -72,6 +72,6 @@ function decodeTarget(value) {
         return trimmed;
     }
 }
-function resolveClickRedirectUrl(defaultBase = (0, env_1.getAppBaseUrl)()) {
-    return (0, env_1.getClickRedirectUrl)() ?? `${defaultBase}/api/track/click`;
+function resolveClickRedirectUrl() {
+    return (0, env_1.getClickRedirectUrl)();
 }
