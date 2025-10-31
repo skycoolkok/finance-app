@@ -13,7 +13,7 @@ const TRACKING_OPTIONS = {
     cpu: 1,
     memory: '256MiB',
     timeoutSeconds: 30,
-    secrets: [params_1.APP_BASE_URL, params_1.OPEN_PIXEL_URL],
+    secrets: [params_1.APP_BASE_URL],
 };
 exports.openPixel = (0, https_1.onRequest)(TRACKING_OPTIONS, async (req, res) => {
     try {
@@ -35,6 +35,6 @@ exports.openPixel = (0, https_1.onRequest)(TRACKING_OPTIONS, async (req, res) =>
     res.set('Access-Control-Allow-Origin', '*');
     res.status(200).send(GIF_BUFFER);
 });
-function resolveOpenPixelUrl(defaultBase = (0, env_1.getAppBaseUrl)()) {
-    return (0, env_1.getOpenPixelUrl)() ?? `${defaultBase}/api/track/open`;
+function resolveOpenPixelUrl() {
+    return (0, env_1.getOpenPixelUrl)();
 }

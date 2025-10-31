@@ -1,5 +1,5 @@
 import { logger } from 'firebase-functions'
-import { APP_BASE_URL, CLICK_REDIRECT_URL, OPEN_PIXEL_URL } from '../params'
+import { APP_BASE_URL, CLICK_REDIRECT_URL, getOpenPixelUrl as readOpenPixelUrl } from '../params'
 
 const FALLBACK_APP_BASE_URL = 'https://finance-app-sigma-jet.vercel.app'
 const FALLBACK_OPEN_PIXEL_URL = `${FALLBACK_APP_BASE_URL}/api/track/open`
@@ -33,13 +33,11 @@ export function getOpenPixelUrl(): string | undefined {
     return cachedOpenPixelUrl || undefined
   }
 
-  const secretUrl = normalizeTrackingUrl(readOpenPixelSecret())
-  const envUrl = normalizeTrackingUrl(process.env.OPEN_PIXEL_URL)
-  const configured = secretUrl ?? envUrl
+  const configured = normalizeTrackingUrl(readOpenPixelUrl())
 
   cachedOpenPixelUrl = configured ?? ''
   if (!configured) {
-    logger.info('OPEN_PIXEL_URL not configured; using default fallback.')
+    logger.debug('OPEN_PIXEL_URL not configured; skipping open pixel injection.')
   }
   return cachedOpenPixelUrl || undefined
 }
@@ -98,18 +96,6 @@ function readAppBaseUrlSecret(): string | undefined {
     }
   } catch (error) {
     logger.debug('Unable to read APP_BASE_URL secret', { error })
-  }
-  return undefined
-}
-
-function readOpenPixelSecret(): string | undefined {
-  try {
-    const value = OPEN_PIXEL_URL.value()
-    if (value && value.trim()) {
-      return value
-    }
-  } catch (error) {
-    logger.debug('Unable to read OPEN_PIXEL_URL secret', { error })
   }
   return undefined
 }

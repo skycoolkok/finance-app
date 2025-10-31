@@ -35,12 +35,10 @@ function getOpenPixelUrl() {
     if (cachedOpenPixelUrl !== null) {
         return cachedOpenPixelUrl || undefined;
     }
-    const secretUrl = normalizeTrackingUrl(readOpenPixelSecret());
-    const envUrl = normalizeTrackingUrl(process.env.OPEN_PIXEL_URL);
-    const configured = secretUrl ?? envUrl;
+    const configured = normalizeTrackingUrl((0, params_1.getOpenPixelUrl)());
     cachedOpenPixelUrl = configured ?? '';
     if (!configured) {
-        firebase_functions_1.logger.info('OPEN_PIXEL_URL not configured; using default fallback.');
+        firebase_functions_1.logger.debug('OPEN_PIXEL_URL not configured; skipping open pixel injection.');
     }
     return cachedOpenPixelUrl || undefined;
 }
@@ -94,18 +92,6 @@ function readAppBaseUrlSecret() {
     }
     catch (error) {
         firebase_functions_1.logger.debug('Unable to read APP_BASE_URL secret', { error });
-    }
-    return undefined;
-}
-function readOpenPixelSecret() {
-    try {
-        const value = params_1.OPEN_PIXEL_URL.value();
-        if (value && value.trim()) {
-            return value;
-        }
-    }
-    catch (error) {
-        firebase_functions_1.logger.debug('Unable to read OPEN_PIXEL_URL secret', { error });
     }
     return undefined;
 }

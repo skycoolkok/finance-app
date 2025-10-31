@@ -145,15 +145,17 @@ class NotificationEngine {
         }
         const nid = this.firestore.collection('notifications').doc().id;
         const resolvedLocale = (0, templates_1.resolveLocaleTag)(locale);
-        const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)(this.baseUrl);
+        const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)();
         const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)(this.baseUrl);
-        const openUrl = this.appendTrackingParams(baseOpenPixelUrl, {
-            nid,
-            uid: reminder.userId,
-            variant: abVariant,
-            event: reminder.eventKey,
-            channel: 'email',
-        });
+        const openUrl = baseOpenPixelUrl
+            ? this.appendTrackingParams(baseOpenPixelUrl, {
+                nid,
+                uid: reminder.userId,
+                variant: abVariant,
+                event: reminder.eventKey,
+                channel: 'email',
+            })
+            : undefined;
         const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
             nid,
             uid: reminder.userId,
@@ -164,8 +166,8 @@ class NotificationEngine {
         });
         const emailContext = {
             ...content.email.context,
-            openUrl,
             clickUrl,
+            ...(openUrl ? { openUrl } : {}),
             ctaUrl: content.email.context?.ctaUrl ?? content.url,
             preferencesUrl: content.email.context?.preferencesUrl ??
                 this.appendPath(this.baseUrl, '/settings/notifications'),
@@ -220,7 +222,7 @@ class NotificationEngine {
             abVariant,
             nid,
             tracking: {
-                openUrl,
+                ...(openUrl ? { openUrl } : {}),
                 clickUrl,
             },
         });
