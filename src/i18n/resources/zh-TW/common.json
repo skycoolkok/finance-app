@@ -32,9 +32,9 @@
     "empty": "新增卡片即可看到帳務洞察。",
     "currencyBadge": "顯示幣別：{{currency}}",
     "currencyLoading": "正在同步幣別偏好...",
-    "fxMonitoringLoading": "載入貨幣偏好中...",
-    "fxBadgeActive": "匯率資料已啟用",
-    "fxBadgeInactive": "匯率資料使用備援"
+    "fxMonitoringLoading": "載入外幣監控中…",
+    "fxBadgeActive": "外幣匯率管理 — 啟用",
+    "fxBadgeInactive": "外幣匯率管理 — 停用"
   },
   "cards": {
     "sectionTitle": "信用卡",
@@ -320,7 +320,7 @@
         "hint": "數值以 1 TWD 為基準。",
         "currentDate": "生效日期",
         "currentSource": "來源",
-        "updatedAt": "最後更新",
+        "updatedAt": "更新於 {{time}}",
         "active": "是否啟用",
         "activeYes": "是",
         "reset": "重設",
@@ -329,8 +329,8 @@
         "checking": "正在確認管理權限...",
         "loginPrompt": "請登入以維護匯率。",
         "noPermission": "您沒有維護匯率權限。",
-        "toastSaved": "已儲存手動匯率（{{date}}）",
-        "errorGeneric": "儲存匯率失敗"
+        "toastSaved": "已儲存。",
+        "errorGeneric": "發生未預期的錯誤。"
       }
     }
   }
