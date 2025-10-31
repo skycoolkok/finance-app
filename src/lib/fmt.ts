@@ -1,4 +1,5 @@
-import { getCurrentLocale, normalizeLocale, AppLocale, FALLBACK_LOCALE } from './locale'
+import { getCurrentLocale, normalizeLocale, FALLBACK_LOCALE } from './locale'
+import type { AppLocale } from './locale'
 
 const DEFAULT_DATE_OPTIONS: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
 
