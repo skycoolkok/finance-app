@@ -34,37 +34,41 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerToken = exports.sendTestPush = exports.ping = void 0;
-// functions/src/index.ts
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const options_1 = require("firebase-functions/v2/options");
 const firebase_functions_1 = require("firebase-functions");
 const resend_1 = require("resend");
-// 1) 全域設定（v2 正確用法，取代舊版 functions.region(...)）
+const lazy_1 = require("./lib/lazy");
+const params_1 = require("./params");
 const REGION = 'asia-east1';
 (0, options_1.setGlobalOptions)({
     region: REGION,
     timeoutSeconds: 60,
     memory: '256MiB',
 });
-// 2) 初始化 Admin（避免重複初始化）
-if (admin.apps.length === 0) {
+if (!admin.apps.length) {
     admin.initializeApp();
 }
-const firestore = admin.firestore();
-const messaging = admin.messaging();
-// 3) Resend（可選）：從環境變數讀 API Key（Emulator 支援 functions/.env）
-const resendApiKey = process.env.RESEND_API_KEY;
-const resendClient = resendApiKey ? new resend_1.Resend(resendApiKey) : null;
-if (!resendClient) {
-    firebase_functions_1.logger.warn('RESEND_API_KEY not set. Email notifications will be skipped.');
-}
-// 方便 UI 測試：24 小時視窗
+const getFirestore = (0, lazy_1.memo)(() => admin.firestore());
+const getMessaging = (0, lazy_1.memo)(() => admin.messaging());
+const getResend = (0, lazy_1.memo)(() => {
+    const key = params_1.RESEND_API_KEY.value();
+    if (!key) {
+        firebase_functions_1.logger.warn('RESEND_API_KEY not set. Email notifications will be skipped.');
+        throw new Error('RESEND_API_KEY not configured');
+    }
+    return new resend_1.Resend(key);
+});
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
-// -------------------------------
-// Ping：健康檢查/測路徑/看環境
-// -------------------------------
-exports.ping = (0, https_1.onCall)(async (request) => {
+exports.ping = (0, https_1.onCall)({ region: REGION, secrets: [params_1.RESEND_API_KEY] }, async (request) => {
+    let resendReady = true;
+    try {
+        getResend();
+    }
+    catch {
+        resendReady = false;
+    }
     return {
         ok: true,
         echo: request.data ?? null,
@@ -72,38 +76,43 @@ exports.ping = (0, https_1.onCall)(async (request) => {
             emulator: process.env.FUNCTIONS_EMULATOR === 'true',
             projectId: process.env.GCLOUD_PROJECT,
             region: REGION,
+            resendReady,
         },
     };
 });
-// -----------------------------------------
-// sendTestPush：Emulator 直接回 mock；真環境就發推播
-// -----------------------------------------
-exports.sendTestPush = (0, https_1.onCall)(async ({ data }) => {
+exports.sendTestPush = (0, https_1.onCall)({ region: REGION, secrets: [params_1.RESEND_API_KEY] }, async ({ data }) => {
     const userId = (data?.userId ?? '').toString().trim();
-    if (!userId)
+    if (!userId) {
         throw new Error('missing userId');
-    // Emulator：不打真正的 FCM，直接回傳 mock
+    }
     if (process.env.FUNCTIONS_EMULATOR === 'true') {
         return { mocked: true, sent: true, userId, note: 'Emulator mock response' };
     }
-    // 真環境：示範用 topic = userId 發推播（按你的實際需求調整）
-    await messaging.send({
+    await getMessaging().send({
         topic: `user_${userId}`,
         notification: { title: 'Hello', body: 'This is a test push' },
     });
     return { mocked: false, sent: true, userId };
 });
-exports.registerToken = (0, https_1.onCall)(async (request) => {
+exports.registerToken = (0, https_1.onCall)({ region: REGION, secrets: [params_1.RESEND_API_KEY] }, async (request) => {
     const token = (request.data?.token ?? '').toString().trim();
-    const userId = (request.data?.userId ?? request.auth?.uid ?? '').toString() || null;
+    const userId = (request.data?.userId ?? request.auth?.uid ?? '').toString().trim() || null;
     if (!token) {
         throw new Error('missing token');
     }
-    // 寫入 Firestore（依你資料模型調整）
-    await firestore.collection('pushTokens').doc(token).set({
+    await getFirestore()
+        .collection('pushTokens')
+        .doc(token)
+        .set({
         uid: userId,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         windowMs: NOTIFICATION_WINDOW_MS,
     }, { merge: true });
+    try {
+        getResend();
+    }
+    catch (error) {
+        firebase_functions_1.logger.debug('Resend client unavailable during registerToken invocation', { error });
+    }
     return { ok: true, token, userId };
 });

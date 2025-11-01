@@ -70,6 +70,6 @@ function decodeTarget(value) {
         return trimmed;
     }
 }
-function resolveClickRedirectUrl(defaultBase = (0, env_1.getAppBaseUrl)()) {
-    return (0, env_1.getClickRedirectUrl)() ?? `${defaultBase}/api/track/click`;
+function resolveClickRedirectUrl() {
+    return (0, env_1.getClickRedirectUrl)();
 }

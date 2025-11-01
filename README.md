@@ -84,17 +84,13 @@ export default defineConfig([
 
 Before deploying Firebase Functions, complete the following:
 
-1. **Configure the app base URL**
+1. **Store the app base URL**
 
    ```bash
-   APP_BASE_URL="https://finance-app-sigma-jet.vercel.app" npm --prefix functions run config:set:appurl
+   firebase functions:secrets:set APP_BASE_URL
    ```
 
-   - **Windows PowerShell**
-     ```powershell
-     $env:APP_BASE_URL = "https://finance-app-sigma-jet.vercel.app"
-     npm --prefix functions run config:set:appurl
-     ```
+   - **Local development:** add `APP_BASE_URL=...` to `functions/.env` or export it in your shell before starting the emulator.
 
 2. **Store the Resend API key**
    ```bash
@@ -103,26 +99,18 @@ Before deploying Firebase Functions, complete the following:
 3. **(Recommended) Configure tracking endpoints**
 
    ```bash
-   firebase functions:config:set \
-     app.app_base_url="https://finance-app-sigma-jet.vercel.app" \
-     app.open_pixel_url="https://asia-east1-<your-project-id>.cloudfunctions.net/openPixel" \
-     app.click_redirect_url="https://asia-east1-<your-project-id>.cloudfunctions.net/clickRedirect"
+   firebase functions:secrets:set OPEN_PIXEL_URL="https://asia-east1-<your-project-id>.cloudfunctions.net/openPixel"
+   firebase functions:secrets:set CLICK_REDIRECT_URL="https://asia-east1-<your-project-id>.cloudfunctions.net/clickRedirect"
    ```
 
    - Replace `<your-project-id>` with your Firebase project ID.
-   - If you omit `open_pixel_url` or `click_redirect_url`, the functions fallback to the values derived from `APP_BASE_URL`.
-
-4. **Verify runtime configuration**
-   ```bash
-   npm --prefix functions run config:get
-   ```
-   Or run `firebase functions:config:get` directly.
+   - If you omit `OPEN_PIXEL_URL` or `CLICK_REDIRECT_URL`, the functions fallback to the values derived from `APP_BASE_URL`.
 
 Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabling automated deployments.
 
 ## Local Development
 
-- Copy `functions/.runtimeconfig.json.sample` to `functions/.runtimeconfig.json` so the emulator exposes `functions.config().app.base_url`.
+- Populate `functions/.env` with the same secrets (`APP_BASE_URL`, `RESEND_API_KEY`, optional tracking URLs) so the Functions emulator can resolve runtime values.
 - Deploy functions after building:
   ```bash
   npm --prefix functions install
@@ -133,7 +121,7 @@ Add the same values (especially `APP_BASE_URL`) to your CI/CD secrets when enabl
 ## User Preferences & FX Rates
 
 - Each user document (`users/{uid}`) now supports a `preferredCurrency` field (`'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'`). When absent we default to `TWD`.
-- Configure the FX admin allowlist with `firebase functions:config:set app.fx_admin_emails="a@b.com,c@d.com"` (adjust the emails to match your team).
+- Configure the FX admin allowlist with `firebase functions:secrets:set FX_ADMIN_EMAILS="a@b.com,c@d.com"` (adjust the emails to match your team).
 - The front end keeps the preference in Firestore **and** `localStorage` so the interface switches currencies immediately even while offline.
 - All monetary display logic runs through `src/lib/money.ts`. Amounts stay persisted in TWD and are formatted/conversion-ready via `formatCurrency(valueTwd, options)`.
 - Currency formatting accepts optional rates (TWD→target). If you omit a rate, the UI falls back to symbol/locale-only formatting (`NT$ 1,234` becomes `$ 1,234` when set to USD but no rate is available), so end users still see a sensible format even when rates are missing.

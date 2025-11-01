@@ -4,17 +4,17 @@
   "type": "commonjs",
   "main": "lib/index.js",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc -p .",
+    "ci": "npm ci",
     "clean": "rimraf lib",
-    "prepare": "npm run build",
-    "config:set:appurl": "firebase functions:config:set app.base_url=\"$APP_BASE_URL\"",
-    "config:get": "firebase functions:config:get",
-    "deploy:functions": "npm run build && firebase deploy --only functions"
+    "lint": "eslint .",
+    "predeploy": "npm run clean && npm ci && npm run build"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "firebase-admin": "^13.5.0",
     "firebase-functions": "^6.6.0",
     "handlebars": "^4.7.8",
@@ -23,7 +23,10 @@
   },
   "devDependencies": {
     "@types/handlebars": "^4.1.0",
+    "@types/node": "^20.11.30",
+    "@typescript-eslint/parser": "^8.14.0",
+    "eslint": "^9.13.0",
     "rimraf": "^6.0.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.6.3"
   }
 }

@@ -30,9 +30,11 @@
     "nextEstimate": "Next Estimate {{amount}}",
     "currencyBadge": "Currency: {{currency}}",
     "currencyLoading": "Syncing currency preference...",
-    "fxBadgeActive": "FX Admin: Active",
-    "fxBadgeInactive": "FX Admin: Inactive",
-    "fxMonitoringLoading": "Fetching exchange-rate status…",
+
+    "fxMonitoringLoading": "Loading FX monitoring…",
+    "fxBadgeActive": "FX rates admin — active",
+    "fxBadgeInactive": "FX rates admin — inactive",
+
     "loading": "Loading billing data...",
     "empty": "Add a card to see billing insights."
   },
@@ -320,14 +322,21 @@
         "hint": "All values are quoted as target currency per 1 TWD.",
         "currentDate": "Effective date",
         "currentSource": "Source",
-        "errorGeneric": "Something went wrong. Please try again.",
+
+        "updatedAt": "Updated at {{time}}",
+
         "active": "Active",
         "activeYes": "yes",
         "reset": "Reset",
         "save": "Save",
         "saving": "Saving...",
-        "toastSaved": "Preferences saved.",
-        "updatedAt": "Updated at {{time}}"
+
+        "checking": "Checking FX admin access...",
+        "loginPrompt": "Sign in to maintain FX rates.",
+        "noPermission": "You do not have permission to maintain FX rates.",
+        "toastSaved": "Saved.",
+        "errorGeneric": "Unexpected error occurred."
+
       }
     }
   }

@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { onAuthStateChanged, type User } from 'firebase/auth'
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
 import LanguageSwitcher from './components/LanguageSwitcher'
 import { NotificationCenter } from './components/NotificationCenter'
 import { DiagBadge } from './components/DiagBadge'
+import AuthButton from './components/AuthButton'
+import FxAdminPlaceholder from './components/FxAdminPlaceholder'
 import { HealthCheck } from './components/HealthCheck'
 import { SettingsPreferences } from './components/SettingsPreferences'
 import { SettingsNotifications } from './components/SettingsNotifications'
@@ -18,23 +21,37 @@ import { useFxRates } from './hooks/useFxRates'
 import { useUserPrefs } from './hooks/useUserPrefs'
 import { initFcmAndRegister } from './messaging'
 import { auth } from './firebase'
+import { checkFxAdmin } from './functions'
 import { buildId } from './version'
 import type { Card, Wallet } from './models/types'
 
 export default function App() {
   const { t, i18n } = useTranslation()
+  const [authUser, setAuthUser] = useState<User | null>(auth.currentUser)
+  const [authLoading, setAuthLoading] = useState(() => !auth.currentUser)
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
   const isHealthRoute = typeof window !== 'undefined' && window.location.pathname === '/__health'
 
-  const userId = auth.currentUser?.uid ?? 'demo-user'
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      setAuthUser(nextUser)
+      setAuthLoading(false)
+    })
+    return () => {
+      unsubscribe()
+    }
+  }, [])
+
+  const userId = authUser?.uid ?? null
   const {
     preferredCurrency,
     loading: currencyLoading,
     setPreferredCurrency,
     availableCurrencies,
   } = useUserPrefs(userId)
+  const shouldSubscribeFx = Boolean(authUser)
   const {
     rates,
     loading: ratesLoading,
@@ -42,17 +59,57 @@ export default function App() {
     effectiveDate: ratesEffectiveDate,
     source: ratesSource,
     updatedAt: ratesUpdatedAt,
-  } = useFxRates()
-  const userEmail = auth.currentUser?.email ?? null
+  } = useFxRates(shouldSubscribeFx)
+  const userEmail = authUser?.email ?? null
+  const [fxAdminState, setFxAdminState] = useState<'guest' | 'checking' | 'allowed' | 'denied'>(
+    authUser ? 'checking' : 'guest',
+  )
+  const fxAdminTitle = useMemo(
+    () => t('settings.preferences.fxRatesAdmin.title', 'FX Rates · Admin'),
+    [t],
+  )
 
   useEffect(() => {
-    if (isHealthRoute) {
+    if (!authUser) {
+      setFxAdminState('guest')
       return
     }
-    initFcmAndRegister(userId).catch((error) => {
+
+    if (!userEmail) {
+      setFxAdminState('denied')
+      return
+    }
+
+    let active = true
+    setFxAdminState('checking')
+
+    void checkFxAdmin({ email: userEmail })
+      .then((result) => {
+        if (!active) {
+          return
+        }
+        const allowed = result.data?.allowed ?? false
+        setFxAdminState(allowed ? 'allowed' : 'denied')
+      })
+      .catch(() => {
+        if (active) {
+          setFxAdminState('denied')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [authUser, userEmail])
+
+  useEffect(() => {
+    if (isHealthRoute || !authUser) {
+      return
+    }
+    initFcmAndRegister(authUser.uid).catch((error) => {
       console.error('FCM initialization failed', error)
     })
-  }, [isHealthRoute, userId])
+  }, [authUser, isHealthRoute])
 
   useEffect(() => {
     // Quick visibility into active language during development
@@ -100,6 +157,55 @@ export default function App() {
     setIsWalletFormOpen(false)
   }
 
+  const renderFxAdminSection = () => {
+    if (authLoading || fxAdminState === 'checking') {
+      return (
+        <FxAdminPlaceholder
+          title={fxAdminTitle}
+          message={t(
+            'settings.preferences.fxRatesAdmin.checking',
+            '正在確認管理權限…',
+          )}
+        />
+      )
+    }
+
+    if (!authUser) {
+      return (
+        <FxAdminPlaceholder
+          title={fxAdminTitle}
+          message={t(
+            'settings.preferences.fxRatesAdmin.loginPrompt',
+            '請先登入以維護匯率。',
+          )}
+        />
+      )
+    }
+
+    if (fxAdminState !== 'allowed') {
+      return (
+        <FxAdminPlaceholder
+          title={fxAdminTitle}
+          message={t(
+            'settings.preferences.fxRatesAdmin.noPermission',
+            '您沒有維護匯率的權限。',
+          )}
+        />
+      )
+    }
+
+    return (
+      <SettingsFxAdmin
+        rates={rates}
+        active={ratesActive}
+        effectiveDate={ratesEffectiveDate}
+        source={ratesSource}
+        updatedAt={ratesUpdatedAt}
+        loading={ratesLoading}
+      />
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 p-4 text-slate-100">
       {import.meta.env.DEV && <DiagBadge preferredCurrency={preferredCurrency} />}
@@ -109,7 +215,10 @@ export default function App() {
             <h1 className="text-3xl font-bold">{t('app.title')}</h1>
             <p className="mt-2 text-sm text-slate-400">{t('app.subtitle')}</p>
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <AuthButton user={authUser} loading={authLoading} />
+          </div>
         </div>
       </header>
 
@@ -175,15 +284,7 @@ export default function App() {
             currencyLoading={currencyLoading || ratesLoading}
           />
           <SettingsNotifications userId={userId} />
-          <SettingsFxAdmin
-            userEmail={userEmail}
-            rates={rates}
-            active={ratesActive}
-            effectiveDate={ratesEffectiveDate}
-            source={ratesSource}
-            updatedAt={ratesUpdatedAt}
-            loading={ratesLoading}
-          />
+          {renderFxAdminSection()}
         </div>
       </section>
 

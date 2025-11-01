@@ -200,30 +200,34 @@ export class NotificationEngine {
     const nid = this.firestore.collection('notifications').doc().id
     const resolvedLocale = resolveLocaleTag(locale)
 
-    const baseOpenPixelUrl = resolveOpenPixelUrl(this.baseUrl)
-    const baseClickRedirectUrl = resolveClickRedirectUrl(this.baseUrl)
+    const baseOpenPixelUrl = resolveOpenPixelUrl()
+    const baseClickRedirectUrl = resolveClickRedirectUrl()
 
-    const openUrl = this.appendTrackingParams(baseOpenPixelUrl, {
-      nid,
-      uid: reminder.userId,
-      variant: abVariant,
-      event: reminder.eventKey,
-      channel: 'email',
-    })
+    const openUrl = baseOpenPixelUrl
+      ? this.appendTrackingParams(baseOpenPixelUrl, {
+          nid,
+          uid: reminder.userId,
+          variant: abVariant,
+          event: reminder.eventKey,
+          channel: 'email',
+        })
+      : undefined
 
-    const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
-      nid,
-      uid: reminder.userId,
-      variant: abVariant,
-      event: reminder.eventKey,
-      channel: 'email',
-      url: content.url,
-    })
+    const clickUrl = baseClickRedirectUrl
+      ? this.appendTrackingParams(baseClickRedirectUrl, {
+          nid,
+          uid: reminder.userId,
+          variant: abVariant,
+          event: reminder.eventKey,
+          channel: 'email',
+          url: content.url,
+        })
+      : content.url
 
     const emailContext = {
       ...content.email.context,
-      openUrl,
       clickUrl,
+      ...(openUrl ? { openUrl } : {}),
       ctaUrl: (content.email.context?.ctaUrl as string | undefined) ?? content.url,
       preferencesUrl:
         (content.email.context?.preferencesUrl as string | undefined) ??
@@ -281,7 +285,7 @@ export class NotificationEngine {
       abVariant,
       nid,
       tracking: {
-        openUrl,
+        ...(openUrl ? { openUrl } : {}),
         clickUrl,
       },
     })

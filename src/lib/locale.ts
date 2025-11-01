@@ -10,8 +10,8 @@ export type PreferenceChangeDetail =
 
 export const PREFERENCE_CHANGE_EVENT = 'app:pref-changed'
 
-const LOCALE_STORAGE_KEY = 'lang'
-const LEGACY_LOCALE_KEYS = ['app:locale'] as const
+const LOCALE_STORAGE_KEY: string = 'lang'
+const LEGACY_LOCALE_KEYS: readonly string[] = ['app:locale']
 const FALLBACK_LOCALE: AppLocale = 'zh-TW'
 
 const EN_VARIANTS = new Set(['en', 'en-us', 'en_gb', 'en-gb', 'en-au', 'en_ca', 'en-ca', 'en-nz'])
