@@ -21,11 +21,14 @@ const MANAGED_CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'JPY', 'KRW']
 const EMPTY_FORM: FormRates = { USD: '', EUR: '', GBP: '', JPY: '', KRW: '' }
 
 function toFormRates(rates: Rates): FormRates {
-  return MANAGED_CURRENCIES.reduce<FormRates>((acc, code) => {
-    const value = rates[code]
-    acc[code] = typeof value === 'number' && value > 0 ? String(value) : ''
-    return acc
-  }, { ...EMPTY_FORM })
+  return MANAGED_CURRENCIES.reduce<FormRates>(
+    (acc, code) => {
+      const value = rates[code]
+      acc[code] = typeof value === 'number' && value > 0 ? String(value) : ''
+      return acc
+    },
+    { ...EMPTY_FORM },
+  )
 }
 
 function parseRates(formRates: FormRates): Partial<Record<CurrencyCode, number>> {
@@ -275,4 +278,3 @@ export function SettingsFxAdmin({
 }
 
 export default SettingsFxAdmin
-

@@ -56,7 +56,6 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore()
 const messaging = admin.messaging()
-const APP_BASE_URL = getAppBaseUrl()
 
 type FxCurrencyCode = 'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'
 
@@ -147,6 +146,7 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
   }
 
   const locale = await fetchUserLocale({ firestore, userId })
+  const appBaseUrl = getAppBaseUrl()
   const response = await messaging.sendEachForMulticast({
     tokens,
     notification: {
@@ -155,7 +155,7 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
     },
     data: {
       type: 'test-push',
-      url: APP_BASE_URL,
+      url: appBaseUrl,
       locale,
     },
   })
@@ -266,13 +266,14 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
     }
 
     const locale = await fetchUserLocale({ firestore, userId })
+    const baseUrl = getAppBaseUrl()
 
     try {
       await sendMail({
         to: email,
         subject: TEST_EMAIL_SUBJECT,
-        html: buildTestEmailHtml(APP_BASE_URL),
-        text: buildTestEmailText(APP_BASE_URL),
+        html: buildTestEmailHtml(baseUrl),
+        text: buildTestEmailText(baseUrl),
       })
     } catch (error) {
       if (error instanceof MissingResendApiKeyError) {
@@ -332,12 +333,13 @@ export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
     logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.')
   }
 
+  const baseUrl = getAppBaseUrl()
   const notificationEngine = new NotificationEngine({
     firestore,
     messaging,
     resendClient,
     notificationWindowMs: NOTIFICATION_WINDOW_MS,
-    baseUrl: APP_BASE_URL,
+    baseUrl,
     logger,
   })
 
