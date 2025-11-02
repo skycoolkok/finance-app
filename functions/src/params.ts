@@ -51,7 +51,9 @@ export function getClickRedirectUrl(): string | undefined {
   return envValue && envValue.length > 0 ? envValue : undefined
 }
 
-function readOptionalSecret(param: ReturnType<typeof defineSecret> | undefined): string | undefined {
+function readOptionalSecret(
+  param: ReturnType<typeof defineSecret> | undefined,
+): string | undefined {
   if (!param) {
     return undefined
   }

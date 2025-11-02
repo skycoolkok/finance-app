@@ -7,4 +7,3 @@ export function memo<T>(factory: () => T): () => T {
     return cached
   }
 }
-

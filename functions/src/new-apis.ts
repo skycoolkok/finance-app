@@ -84,17 +84,14 @@ export const registerToken = onCall<RegisterTokenData | null>(
       throw new Error('missing token')
     }
 
-    await getFirestore()
-      .collection('pushTokens')
-      .doc(token)
-      .set(
-        {
-          uid: userId,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          windowMs: NOTIFICATION_WINDOW_MS,
-        },
-        { merge: true },
-      )
+    await getFirestore().collection('pushTokens').doc(token).set(
+      {
+        uid: userId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        windowMs: NOTIFICATION_WINDOW_MS,
+      },
+      { merge: true },
+    )
 
     try {
       getResend()

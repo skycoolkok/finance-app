@@ -3,10 +3,8 @@ import { onRequest } from 'firebase-functions/v2/https'
 
 import { getAppBaseUrl } from './notif/env'
 import { RESEND_API_KEY } from './params'
-import { memo } from './lib/lazy'
-
-const getMailer = memo(() => require('./mailer') as typeof import('./mailer'))
-const getResendClientModule = memo(() => require('./resendClient') as typeof import('./resendClient'))
+import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
+import { MissingResendApiKeyError } from './resendClient'
 
 const REGION = 'asia-east1'
 
@@ -32,18 +30,16 @@ export const sendTestEmailGet = onRequest(HTTPS_OPTIONS, async (req, res) => {
   }
 
   const baseUrl = getAppBaseUrl()
-  const mailer = getMailer()
-  const resendClientModule = getResendClientModule()
 
   try {
-    await mailer.sendMail({
+    await sendMail({
       to: recipient,
-      subject: mailer.TEST_EMAIL_SUBJECT,
-      html: mailer.buildTestEmailHtml(baseUrl),
-      text: mailer.buildTestEmailText(baseUrl),
+      subject: TEST_EMAIL_SUBJECT,
+      html: buildTestEmailHtml(baseUrl),
+      text: buildTestEmailText(baseUrl),
     })
   } catch (error) {
-    if (error instanceof resendClientModule.MissingResendApiKeyError) {
+    if (error instanceof MissingResendApiKeyError) {
       res.status(500).json({ error: 'RESEND_API_KEY is not configured.' })
       return
     }
@@ -58,7 +54,7 @@ export const sendTestEmailGet = onRequest(HTTPS_OPTIONS, async (req, res) => {
   res.status(200).json({
     delivered: true,
     to: recipient,
-    subject: mailer.TEST_EMAIL_SUBJECT,
+    subject: TEST_EMAIL_SUBJECT,
   })
 })
 

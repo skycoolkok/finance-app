@@ -3,32 +3,17 @@ import { logger } from 'firebase-functions'
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 
-import type { NotificationEngine, ReminderEvent } from './notif/engine'
+import { NotificationEngine, fetchUserLocale, logNotificationRecord } from './notif/engine'
+import type { ReminderEvent } from './notif/engine'
 import { getAppBaseUrl } from './notif/env'
 import { sendBudgetAlert } from './notif/budgetEngine'
 import { sanitizeForKey } from './notif/utils'
 import { isFxAdmin as isFxAdminEmail } from './lib/admin'
 import { memo } from './lib/lazy'
 import { FX_ADMIN_EMAILS, RESEND_API_KEY } from './params'
-
-const getNotificationModule = memo(() => require('./notif/engine') as typeof import('./notif/engine'))
-const getMailerModule = memo(() => require('./mailer') as typeof import('./mailer'))
-const getTemplatesModule = memo(() => require('./templates') as typeof import('./templates'))
-const getTestMailModule = memo(() => require('./testMail') as typeof import('./testMail'))
-const getResendModule = memo(() => require('./resendClient') as typeof import('./resendClient'))
-
-const getNotificationEngineClass = () => getNotificationModule().NotificationEngine
-const fetchUserLocaleLazy: typeof import('./notif/engine').fetchUserLocale = (options) =>
-  getNotificationModule().fetchUserLocale(options)
-const logNotificationRecordLazy: typeof import('./notif/engine').logNotificationRecord = (
-  firestore,
-  record,
-) => getNotificationModule().logNotificationRecord(firestore, record)
-const resolveLocaleTagLazy: typeof import('./templates').resolveLocaleTag = (locale) =>
-  getTemplatesModule().resolveLocaleTag(locale)
-const getMailer = () => getMailerModule()
-type SendTestEmailHandler = typeof import('./testMail')['sendTestEmailGet']
-const getSendTestEmailGet = (): SendTestEmailHandler => getTestMailModule().sendTestEmailGet
+import { resolveLocaleTag } from './templates'
+import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
+import { MissingResendApiKeyError, getResendClientOrNull } from './resendClient'
 
 const REGION = 'asia-east1'
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -64,7 +49,6 @@ if (!admin.apps.length) {
   admin.initializeApp()
 }
 
-
 const getFirestore = memo(() => admin.firestore())
 const getMessaging = memo(() => admin.messaging())
 
@@ -82,7 +66,6 @@ export const pingCallable = onCall<{ message?: unknown } | null>(
     },
   }),
 )
-
 
 type FxCurrencyCode = 'TWD' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'KRW'
 
@@ -172,11 +155,9 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
     throw new HttpsError('failed-precondition', 'No device tokens registered for this user')
   }
 
-
-  const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId })
+  const locale = await fetchUserLocale({ firestore: getFirestore(), userId })
   const appBaseUrl = getAppBaseUrl()
   const response = await getMessaging().sendEachForMulticast({
-
     tokens,
     notification: {
       title: 'Finance App',
@@ -189,7 +170,7 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
     },
   })
 
-  await logNotificationRecordLazy(getFirestore(), {
+  await logNotificationRecord(getFirestore(), {
     userId,
     type: 'test-push',
     message: 'Test push notification dispatched.',
@@ -294,24 +275,18 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
       throw new HttpsError('failed-precondition', 'No email address available for this user')
     }
 
-
-    const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId })
+    const locale = await fetchUserLocale({ firestore: getFirestore(), userId })
     const appBaseUrl = getAppBaseUrl()
-    const mailer = getMailer()
-    const resendModule = getResendModule()
-
 
     try {
-      await mailer.sendMail({
+      await sendMail({
         to: email,
-
-        subject: mailer.TEST_EMAIL_SUBJECT,
-        html: mailer.buildTestEmailHtml(appBaseUrl),
-        text: mailer.buildTestEmailText(appBaseUrl),
-
+        subject: TEST_EMAIL_SUBJECT,
+        html: buildTestEmailHtml(appBaseUrl),
+        text: buildTestEmailText(appBaseUrl),
       })
     } catch (error) {
-      if (error instanceof resendModule.MissingResendApiKeyError) {
+      if (error instanceof MissingResendApiKeyError) {
         throw new HttpsError('failed-precondition', 'RESEND_API_KEY is not configured')
       }
 
@@ -322,7 +297,7 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
       throw new HttpsError('internal', 'Unable to send test email')
     }
 
-    await logNotificationRecordLazy(getFirestore(), {
+    await logNotificationRecord(getFirestore(), {
       userId,
       type: 'test-email',
       message: 'Test email notification dispatched.',
@@ -346,7 +321,7 @@ export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, a
     throw new HttpsError('invalid-argument', 'locale is required')
   }
 
-  const normalized = resolveLocaleTagLazy(localeInput)
+  const normalized = resolveLocaleTag(localeInput)
   await getFirestore().collection('users').doc(userId).set(
     {
       locale: normalized,
@@ -363,16 +338,14 @@ export const refreshFxRates = onSchedule(FX_SCHEDULE_OPTIONS, async () => {
 })
 
 export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
-  const resendModule = getResendModule()
-  const resendClient = await resendModule.getResendClientOrNull()
+  const resendClient = await getResendClientOrNull()
   if (!resendClient) {
     logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.')
   }
 
   const baseUrl = getAppBaseUrl()
 
-  const NotificationEngineCtor = getNotificationEngineClass()
-  const notificationEngine = new NotificationEngineCtor({
+  const notificationEngine = new NotificationEngine({
     firestore: getFirestore(),
     messaging: getMessaging(),
 
@@ -386,8 +359,7 @@ export const scheduledBudget = onSchedule(SCHEDULE_OPTIONS, async () => {
   await processBudgetAlerts(notificationEngine)
 })
 
-export const sendTestEmailGet: SendTestEmailHandler = ((...args) =>
-  getSendTestEmailGet()(...args)) as SendTestEmailHandler
+export { sendTestEmailGet } from './testMail'
 
 export { openPixel } from './tracking/openPixel'
 export { clickRedirect } from './tracking/clickRedirect'

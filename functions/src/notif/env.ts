@@ -92,4 +92,8 @@ function normalizeTrackingUrl(value: string | undefined): string | undefined {
   }
 }
 
-export { DEFAULT_BASE_URL as FALLBACK_APP_BASE_URL, FALLBACK_OPEN_PIXEL_URL, FALLBACK_CLICK_REDIRECT_URL }
+export {
+  DEFAULT_BASE_URL as FALLBACK_APP_BASE_URL,
+  FALLBACK_OPEN_PIXEL_URL,
+  FALLBACK_CLICK_REDIRECT_URL,
+}
