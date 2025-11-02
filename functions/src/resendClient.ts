@@ -1,10 +1,6 @@
-import { defineSecret } from 'firebase-functions/params'
 import { Resend } from 'resend'
-
-export const RESEND_API_KEY = defineSecret('RESEND_API_KEY')
-
-let cachedClient: Resend | null = null
-let cachedKey: string | null = null
+import { memo } from './lib/lazy'
+import { RESEND_API_KEY } from './params'
 
 export class MissingResendApiKeyError extends Error {
   constructor() {
@@ -13,18 +9,17 @@ export class MissingResendApiKeyError extends Error {
   }
 }
 
-export async function getResendClient(): Promise<Resend> {
+const getResendInternal = memo((): Resend => {
   const apiKey = RESEND_API_KEY.value()
   if (!apiKey) {
     throw new MissingResendApiKeyError()
   }
 
-  if (!cachedClient || cachedKey !== apiKey) {
-    cachedClient = new Resend(apiKey)
-    cachedKey = apiKey
-  }
+  return new Resend(apiKey)
+})
 
-  return cachedClient
+export async function getResendClient(): Promise<Resend> {
+  return getResendInternal()
 }
 
 export async function getResendClientOrNull(): Promise<Resend | null> {

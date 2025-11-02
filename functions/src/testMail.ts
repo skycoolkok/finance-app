@@ -1,9 +1,10 @@
 import { logger } from 'firebase-functions'
 import { onRequest } from 'firebase-functions/v2/https'
 
-import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
 import { getAppBaseUrl } from './notif/env'
-import { MissingResendApiKeyError, RESEND_API_KEY } from './resendClient'
+import { RESEND_API_KEY } from './params'
+import { TEST_EMAIL_SUBJECT, buildTestEmailHtml, buildTestEmailText, sendMail } from './mailer'
+import { MissingResendApiKeyError } from './resendClient'
 
 const REGION = 'asia-east1'
 

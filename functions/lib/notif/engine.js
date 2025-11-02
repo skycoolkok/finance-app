@@ -145,27 +145,31 @@ class NotificationEngine {
         }
         const nid = this.firestore.collection('notifications').doc().id;
         const resolvedLocale = (0, templates_1.resolveLocaleTag)(locale);
-        const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)(this.baseUrl);
-        const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)(this.baseUrl);
-        const openUrl = this.appendTrackingParams(baseOpenPixelUrl, {
-            nid,
-            uid: reminder.userId,
-            variant: abVariant,
-            event: reminder.eventKey,
-            channel: 'email',
-        });
-        const clickUrl = this.appendTrackingParams(baseClickRedirectUrl, {
-            nid,
-            uid: reminder.userId,
-            variant: abVariant,
-            event: reminder.eventKey,
-            channel: 'email',
-            url: content.url,
-        });
+        const baseOpenPixelUrl = (0, openPixel_1.resolveOpenPixelUrl)();
+        const baseClickRedirectUrl = (0, clickRedirect_1.resolveClickRedirectUrl)();
+        const openUrl = baseOpenPixelUrl
+            ? this.appendTrackingParams(baseOpenPixelUrl, {
+                nid,
+                uid: reminder.userId,
+                variant: abVariant,
+                event: reminder.eventKey,
+                channel: 'email',
+            })
+            : undefined;
+        const clickUrl = baseClickRedirectUrl
+            ? this.appendTrackingParams(baseClickRedirectUrl, {
+                nid,
+                uid: reminder.userId,
+                variant: abVariant,
+                event: reminder.eventKey,
+                channel: 'email',
+                url: content.url,
+            })
+            : content.url;
         const emailContext = {
             ...content.email.context,
-            openUrl,
             clickUrl,
+            ...(openUrl ? { openUrl } : {}),
             ctaUrl: content.email.context?.ctaUrl ?? content.url,
             preferencesUrl: content.email.context?.preferencesUrl ??
                 this.appendPath(this.baseUrl, '/settings/notifications'),
@@ -220,7 +224,7 @@ class NotificationEngine {
             abVariant,
             nid,
             tracking: {
-                openUrl,
+                ...(openUrl ? { openUrl } : {}),
                 clickUrl,
             },
         });
@@ -284,7 +288,7 @@ class NotificationEngine {
             .where('userId', '==', userId)
             .get();
         const tokens = snapshot.docs
-            .map(docSnapshot => docSnapshot.data().token)
+            .map((docSnapshot) => docSnapshot.data().token)
             .filter((token) => typeof token === 'string' && token.length > 0);
         this.tokenCache.set(userId, tokens);
         return tokens;

@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { CurrencyCode, Rates } from '../lib/money'
-import { checkFxAdmin, setFxRates } from '../functions'
+import { setFxRates } from '../functions'
 
 type SettingsFxAdminProps = {
-  userEmail: string | null
   rates: Rates
   active: boolean
   effectiveDate: string | null
@@ -21,11 +20,14 @@ const MANAGED_CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'JPY', 'KRW']
 const EMPTY_FORM: FormRates = { USD: '', EUR: '', GBP: '', JPY: '', KRW: '' }
 
 function toFormRates(rates: Rates): FormRates {
-  return MANAGED_CURRENCIES.reduce<FormRates>((acc, code) => {
-    const value = rates[code]
-    acc[code] = typeof value === 'number' && value > 0 ? String(value) : ''
-    return acc
-  }, { ...EMPTY_FORM })
+  return MANAGED_CURRENCIES.reduce<FormRates>(
+    (acc, code) => {
+      const value = rates[code]
+      acc[code] = typeof value === 'number' && value > 0 ? String(value) : ''
+      return acc
+    },
+    { ...EMPTY_FORM },
+  )
 }
 
 function parseRates(formRates: FormRates): Partial<Record<CurrencyCode, number>> {
@@ -60,7 +62,6 @@ function formatUpdatedAt(updatedAt: string | null, locale: string): string {
 }
 
 export function SettingsFxAdmin({
-  userEmail,
   rates,
   active,
   effectiveDate,
@@ -73,9 +74,6 @@ export function SettingsFxAdmin({
   const [saving, setSaving] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [adminState, setAdminState] = useState<'loading' | 'allowed' | 'denied'>(
-    userEmail ? 'loading' : 'denied',
-  )
 
   const locale = i18n.resolvedLanguage || i18n.language || 'en'
 
@@ -97,38 +95,6 @@ export function SettingsFxAdmin({
       window.clearTimeout(timer)
     }
   }, [toastMessage])
-
-  useEffect(() => {
-    if (!userEmail) {
-      setAdminState('denied')
-      return
-    }
-
-    let alive = true
-    setAdminState('loading')
-    void checkFxAdmin({ email: userEmail })
-      .then((result) => {
-        if (!alive) {
-          return
-        }
-        const allowed = result.data?.allowed ?? false
-        setAdminState(allowed ? 'allowed' : 'denied')
-      })
-      .catch(() => {
-        if (!alive) {
-          return
-        }
-        setAdminState('denied')
-      })
-
-    return () => {
-      alive = false
-    }
-  }, [userEmail])
-
-  if (adminState !== 'allowed') {
-    return null
-  }
 
   const handleChange = (code: CurrencyCode, value: string) => {
     setFormRates((prev) => ({
@@ -275,4 +241,3 @@ export function SettingsFxAdmin({
 }
 
 export default SettingsFxAdmin
-

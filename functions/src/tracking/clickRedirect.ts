@@ -79,6 +79,6 @@ function decodeTarget(value: string): string | null {
   }
 }
 
-export function resolveClickRedirectUrl(defaultBase = getAppBaseUrl()): string {
-  return getClickRedirectUrl() ?? `${defaultBase}/api/track/click`
+export function resolveClickRedirectUrl(): string | undefined {
+  return getClickRedirectUrl()
 }

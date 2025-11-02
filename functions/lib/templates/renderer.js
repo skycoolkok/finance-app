@@ -39,7 +39,7 @@ function renderFromCache(entry, context) {
             validationLevel: 'soft',
         });
         if (result.errors?.length) {
-            throw new Error(`MJML render failed: ${result.errors.map(error => error.formattedMessage).join('; ')}`);
+            throw new Error(`MJML render failed: ${result.errors.map((error) => error.formattedMessage).join('; ')}`);
         }
         return result.html;
     }
@@ -49,9 +49,7 @@ function buildCandidateList(locale, template, variant) {
     const filenames = [];
     const basePaths = [
         node_path_1.default.join(getTemplatesRoot(), locale),
-        node_path_1.default.resolve(__dirname, '..', '..', 'src', 'templates', locale),
         node_path_1.default.join(process.cwd(), 'functions', 'src', 'templates', locale),
-        node_path_1.default.join(process.cwd(), 'src', 'templates', locale),
     ];
     const uniquePaths = Array.from(new Set(basePaths));
     const orderedBasenames = [

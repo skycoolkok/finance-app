@@ -80,9 +80,7 @@ function buildCandidateList(locale: AppLocale, template: TemplateKind, variant: 
 
   const basePaths = [
     path.join(getTemplatesRoot(), locale),
-    path.resolve(__dirname, '..', '..', 'src', 'templates', locale),
     path.join(process.cwd(), 'functions', 'src', 'templates', locale),
-    path.join(process.cwd(), 'src', 'templates', locale),
   ]
 
   const uniquePaths = Array.from(new Set(basePaths))
