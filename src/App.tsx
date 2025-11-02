@@ -162,10 +162,7 @@ export default function App() {
       return (
         <FxAdminPlaceholder
           title={fxAdminTitle}
-          message={t(
-            'settings.preferences.fxRatesAdmin.checking',
-            '正在確認管理權限…',
-          )}
+          message={t('settings.preferences.fxRatesAdmin.checking', '正在確認管理權限…')}
         />
       )
     }
@@ -174,10 +171,7 @@ export default function App() {
       return (
         <FxAdminPlaceholder
           title={fxAdminTitle}
-          message={t(
-            'settings.preferences.fxRatesAdmin.loginPrompt',
-            '請先登入以維護匯率。',
-          )}
+          message={t('settings.preferences.fxRatesAdmin.loginPrompt', '請先登入以維護匯率。')}
         />
       )
     }
@@ -186,10 +180,7 @@ export default function App() {
       return (
         <FxAdminPlaceholder
           title={fxAdminTitle}
-          message={t(
-            'settings.preferences.fxRatesAdmin.noPermission',
-            '您沒有維護匯率的權限。',
-          )}
+          message={t('settings.preferences.fxRatesAdmin.noPermission', '您沒有維護匯率的權限。')}
         />
       )
     }
