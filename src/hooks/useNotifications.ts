@@ -34,7 +34,7 @@ export type UseNotificationsOptions = {
 type HookState = {
   notifications: UserNotification[]
   loading: boolean
-  error: string | null
+  error: unknown
   filterType: string
   availableTypes: string[]
   hasMore: boolean
@@ -56,7 +56,7 @@ export function useNotifications(
 
   const [notifications, setNotifications] = useState<UserNotification[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [availableTypes, setAvailableTypes] = useState<string[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -137,7 +137,7 @@ export function useNotifications(
           return Array.from(base).sort()
         })
       } catch (fetchError) {
-        setError(fetchError instanceof Error ? fetchError.message : String(fetchError))
+        setError(fetchError)
       } finally {
         setLoading(false)
         pendingRef.current = false
@@ -157,7 +157,7 @@ export function useNotifications(
 
     resetPagination()
     fetchPage(true).catch((err) => {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(err)
     })
   }, [fetchPage, resetPagination, userId, filterType])
 
