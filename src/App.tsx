@@ -219,35 +219,45 @@ export default function App() {
       />
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
-          <h2 className="text-xl font-semibold">{t('cards.sectionTitle')}</h2>
-          <CardForm userId={userId} existingCard={editingCard} onComplete={handleCardFormComplete} />
-          <CardList
-            userId={userId}
-            onEdit={handleEditCard}
-            preferredCurrency={preferredCurrency}
-            rates={rates}
-          />
-        </div>
+  <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
+    <h2 className="text-xl font-semibold">{t('cards.sectionTitle')}</h2>
+    <CardForm
+      userId={userId}
+      existingCard={editingCard}
+      onComplete={handleCardFormComplete}
+    />
+    <CardList
+      userId={userId}
+      onEdit={handleEditCard}
+      preferredCurrency={preferredCurrency}
+      rates={rates}
+    />
+  </div>
 
-        <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{t('wallets.sectionTitle')}</h2>
-            <button
-              type="button"
-              onClick={handleAddWallet}
-              className="rounded bg-emerald-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-400"
-            >
-              {t('wallets.form.actions.create')}
-            </button>
-          </div>
+  <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
+    <div className="flex items-center justify-between">
+      <h2 className="text-xl font-semibold">{t('wallets.sectionTitle')}</h2>
+      <button
+        type="button"
+        onClick={handleAddWallet}
+        className="rounded bg-emerald-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-400"
+      >
+        {t('wallets.form.actions.create')}
+      </button>
+    </div>
 
-          {isWalletFormOpen && (
-            <WalletForm userId={userId} existingWallet={editingWallet} onComplete={handleWalletFormComplete} />
-          )}
-          <WalletList userId={userId} onEdit={handleEditWallet} />
-        </div>
-      </section>
+    {isWalletFormOpen && (
+      <WalletForm
+        userId={userId}
+        existingWallet={editingWallet}
+        onComplete={handleWalletFormComplete}
+      />
+    )}
+
+    <WalletList userId={userId} onEdit={handleEditWallet} />
+  </div>
+</section>
+
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <TransactionForm userId={userId} />
