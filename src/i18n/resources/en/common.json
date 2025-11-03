@@ -336,7 +336,6 @@
         "noPermission": "You do not have permission to maintain FX rates.",
         "toastSaved": "Saved.",
         "errorGeneric": "Unexpected error occurred."
-
       }
     }
   }

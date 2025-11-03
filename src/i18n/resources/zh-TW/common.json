@@ -36,7 +36,6 @@
     "fxMonitoringLoading": "載入外幣監控中…",
     "fxBadgeActive": "外幣匯率管理 — 啟用",
     "fxBadgeInactive": "外幣匯率管理 — 停用"
-
   },
   "cards": {
     "sectionTitle": "信用卡",
@@ -336,7 +335,6 @@
         "noPermission": "您沒有維護匯率權限。",
         "toastSaved": "已儲存。",
         "errorGeneric": "發生未預期的錯誤。"
-
       }
     }
   }
