@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { onAuthStateChanged, type User } from 'firebase/auth'
+
+
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
-import LanguageSwitcher from './components/LanguageSwitcher'
 import { NotificationCenter } from './components/NotificationCenter'
 import { DiagBadge } from './components/DiagBadge'
 import AuthButton from './components/AuthButton'
 import FxAdminPlaceholder from './components/FxAdminPlaceholder'
 import { HealthCheck } from './components/HealthCheck'
-import { SettingsPreferences } from './components/SettingsPreferences'
-import { SettingsNotifications } from './components/SettingsNotifications'
-import { SettingsFxAdmin } from './components/SettingsFxAdmin'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import WalletForm from './components/WalletForm'
@@ -45,12 +43,14 @@ export default function App() {
   }, [])
 
   const userId = authUser?.uid ?? null
+
   const {
     preferredCurrency,
     loading: currencyLoading,
     setPreferredCurrency,
     availableCurrencies,
   } = useUserPrefs(userId)
+
   const shouldSubscribeFx = Boolean(authUser)
   const {
     rates,
@@ -64,10 +64,12 @@ export default function App() {
   const [fxAdminState, setFxAdminState] = useState<'guest' | 'checking' | 'allowed' | 'denied'>(
     authUser ? 'checking' : 'guest',
   )
+
   const fxAdminTitle = useMemo(
     () => t('settings.preferences.fxRatesAdmin.title', 'FX Rates · Admin'),
     [t],
   )
+
 
   useEffect(() => {
     if (!authUser) {
@@ -112,7 +114,6 @@ export default function App() {
   }, [authUser, isHealthRoute])
 
   useEffect(() => {
-    // Quick visibility into active language during development
     if (import.meta.env.DEV && !isHealthRoute) {
       console.log('[i18n] active language:', i18n.language)
       console.log('[i18n] sample title:', t('app.title'))
@@ -156,6 +157,7 @@ export default function App() {
     setEditingWallet(null)
     setIsWalletFormOpen(false)
   }
+
 
   const renderFxAdminSection = () => {
     if (authLoading || fxAdminState === 'checking') {
@@ -213,6 +215,7 @@ export default function App() {
         </div>
       </header>
 
+
       <Dashboard
         userId={userId}
         preferredCurrency={preferredCurrency}
@@ -260,10 +263,11 @@ export default function App() {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <TransactionForm userId={userId} />
         <TransactionList userId={userId} preferredCurrency={preferredCurrency} rates={rates} />
       </section>
+
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <NotificationCenter userId={userId} />
@@ -279,7 +283,18 @@ export default function App() {
         </div>
       </section>
 
-      <footer className="mt-auto text-right text-xs text-slate-500">Build: {buildId}</footer>
-    </div>
+
+      <footer className="text-right text-xs text-slate-500">Build: {buildId}</footer>
+    </>
+  )
+
+  return (
+    <DashboardLayout
+      user={authUser}
+      authLoading={authLoading}
+      isFxAdmin={fxAdminState === 'allowed'}
+    >
+      {mainContent}
+    </DashboardLayout>
   )
 }
