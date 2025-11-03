@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 
 
+
+
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
@@ -44,12 +46,14 @@ export default function App() {
 
   const userId = authUser?.uid ?? null
 
+
   const {
     preferredCurrency,
     loading: currencyLoading,
     setPreferredCurrency,
     availableCurrencies,
   } = useUserPrefs(userId)
+
 
   const shouldSubscribeFx = Boolean(authUser)
   const {
@@ -65,10 +69,12 @@ export default function App() {
     authUser ? 'checking' : 'guest',
   )
 
+
   const fxAdminTitle = useMemo(
     () => t('settings.preferences.fxRatesAdmin.title', 'FX Rates · Admin'),
     [t],
   )
+
 
 
   useEffect(() => {
@@ -159,6 +165,7 @@ export default function App() {
   }
 
 
+
   const renderFxAdminSection = () => {
     if (authLoading || fxAdminState === 'checking') {
       return (
@@ -216,6 +223,7 @@ export default function App() {
       </header>
 
 
+
       <Dashboard
         userId={userId}
         preferredCurrency={preferredCurrency}
@@ -269,6 +277,7 @@ export default function App() {
       </section>
 
 
+
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <NotificationCenter userId={userId} />
         <div className="space-y-6">
@@ -282,6 +291,7 @@ export default function App() {
           {renderFxAdminSection()}
         </div>
       </section>
+
 
 
       <footer className="text-right text-xs text-slate-500">Build: {buildId}</footer>
