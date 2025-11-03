@@ -2,9 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 
-
-
-
 import CardForm from './components/CardForm'
 import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
@@ -25,6 +22,12 @@ import { checkFxAdmin } from './functions'
 import { buildId } from './version'
 import type { Card, Wallet } from './models/types'
 
+/** 補齊缺的元件 imports  */
+import LanguageSwitcher from './components/LanguageSwitcher'
+import SettingsFxAdmin from './components/SettingsFxAdmin'
+import SettingsPreferences from './components/SettingsPreferences'
+import SettingsNotifications from './components/SettingsNotifications'
+
 export default function App() {
   const { t, i18n } = useTranslation()
   const [authUser, setAuthUser] = useState<User | null>(auth.currentUser)
@@ -39,13 +42,10 @@ export default function App() {
       setAuthUser(nextUser)
       setAuthLoading(false)
     })
-    return () => {
-      unsubscribe()
-    }
+    return () => unsubscribe()
   }, [])
 
   const userId = authUser?.uid ?? null
-
 
   const {
     preferredCurrency,
@@ -53,7 +53,6 @@ export default function App() {
     setPreferredCurrency,
     availableCurrencies,
   } = useUserPrefs(userId)
-
 
   const shouldSubscribeFx = Boolean(authUser)
   const {
@@ -64,45 +63,37 @@ export default function App() {
     source: ratesSource,
     updatedAt: ratesUpdatedAt,
   } = useFxRates(shouldSubscribeFx)
+
   const userEmail = authUser?.email ?? null
   const [fxAdminState, setFxAdminState] = useState<'guest' | 'checking' | 'allowed' | 'denied'>(
     authUser ? 'checking' : 'guest',
   )
-
 
   const fxAdminTitle = useMemo(
     () => t('settings.preferences.fxRatesAdmin.title', 'FX Rates · Admin'),
     [t],
   )
 
-
-
   useEffect(() => {
     if (!authUser) {
       setFxAdminState('guest')
       return
     }
-
     if (!userEmail) {
       setFxAdminState('denied')
       return
     }
-
     let active = true
     setFxAdminState('checking')
 
     void checkFxAdmin({ email: userEmail })
       .then((result) => {
-        if (!active) {
-          return
-        }
+        if (!active) return
         const allowed = result.data?.allowed ?? false
         setFxAdminState(allowed ? 'allowed' : 'denied')
       })
       .catch(() => {
-        if (active) {
-          setFxAdminState('denied')
-        }
+        if (active) setFxAdminState('denied')
       })
 
     return () => {
@@ -111,9 +102,7 @@ export default function App() {
   }, [authUser, userEmail])
 
   useEffect(() => {
-    if (isHealthRoute || !authUser) {
-      return
-    }
+    if (isHealthRoute || !authUser) return
     initFcmAndRegister(authUser.uid).catch((error) => {
       console.error('FCM initialization failed', error)
     })
@@ -141,30 +130,20 @@ export default function App() {
     )
   }
 
-  const handleEditCard = (card: Card) => {
-    setEditingCard(card)
-  }
-
-  const handleCardFormComplete = () => {
-    setEditingCard(null)
-  }
-
+  const handleEditCard = (card: Card) => setEditingCard(card)
+  const handleCardFormComplete = () => setEditingCard(null)
   const handleAddWallet = () => {
     setEditingWallet(null)
     setIsWalletFormOpen(true)
   }
-
   const handleEditWallet = (wallet: Wallet) => {
     setEditingWallet(wallet)
     setIsWalletFormOpen(true)
   }
-
   const handleWalletFormComplete = () => {
     setEditingWallet(null)
     setIsWalletFormOpen(false)
   }
-
-
 
   const renderFxAdminSection = () => {
     if (authLoading || fxAdminState === 'checking') {
@@ -212,9 +191,11 @@ export default function App() {
     )
   }
 
+  /** 唯一的 return（已移除舊檔案尾端的重複 return 與多餘的 </>） */
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 p-4 text-slate-100">
       {import.meta.env.DEV && <DiagBadge preferredCurrency={preferredCurrency} />}
+
       <header className="rounded border border-slate-800 bg-slate-900/40 p-6 shadow">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -228,8 +209,6 @@ export default function App() {
         </div>
       </header>
 
-
-
       <Dashboard
         userId={userId}
         preferredCurrency={preferredCurrency}
@@ -242,11 +221,7 @@ export default function App() {
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded border border-slate-800 bg-slate-900/40 p-5 shadow">
           <h2 className="text-xl font-semibold">{t('cards.sectionTitle')}</h2>
-          <CardForm
-            userId={userId}
-            existingCard={editingCard}
-            onComplete={handleCardFormComplete}
-          />
+          <CardForm userId={userId} existingCard={editingCard} onComplete={handleCardFormComplete} />
           <CardList
             userId={userId}
             onEdit={handleEditCard}
@@ -266,12 +241,9 @@ export default function App() {
               {t('wallets.form.actions.create')}
             </button>
           </div>
+
           {isWalletFormOpen && (
-            <WalletForm
-              userId={userId}
-              existingWallet={editingWallet}
-              onComplete={handleWalletFormComplete}
-            />
+            <WalletForm userId={userId} existingWallet={editingWallet} onComplete={handleWalletFormComplete} />
           )}
           <WalletList userId={userId} onEdit={handleEditWallet} />
         </div>
@@ -281,8 +253,6 @@ export default function App() {
         <TransactionForm userId={userId} />
         <TransactionList userId={userId} preferredCurrency={preferredCurrency} rates={rates} />
       </section>
-
-
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <NotificationCenter userId={userId} />
@@ -298,19 +268,7 @@ export default function App() {
         </div>
       </section>
 
-
-
       <footer className="text-right text-xs text-slate-500">Build: {buildId}</footer>
-    </>
-  )
-
-  return (
-    <DashboardLayout
-      user={authUser}
-      authLoading={authLoading}
-      isFxAdmin={fxAdminState === 'allowed'}
-    >
-      {mainContent}
-    </DashboardLayout>
+    </div>
   )
 }
