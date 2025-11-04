@@ -100,10 +100,7 @@ exports.registerToken = (0, https_1.onCall)({ region: REGION, secrets: [params_1
     if (!token) {
         throw new Error('missing token');
     }
-    await getFirestore()
-        .collection('pushTokens')
-        .doc(token)
-        .set({
+    await getFirestore().collection('pushTokens').doc(token).set({
         uid: userId,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         windowMs: NOTIFICATION_WINDOW_MS,

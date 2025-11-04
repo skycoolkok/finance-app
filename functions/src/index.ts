@@ -52,6 +52,45 @@ if (!admin.apps.length) {
 const getFirestore = memo(() => admin.firestore())
 const getMessaging = memo(() => admin.messaging())
 
+type EnsureProfileOptions = {
+  uid: string
+  email?: string | null
+  locale?: string | null
+}
+
+async function ensureUserProfile({ uid, email, locale }: EnsureProfileOptions): Promise<void> {
+  const firestore = getFirestore()
+  const userRef = firestore.collection('users').doc(uid)
+  const normalizedEmail = typeof email === 'string' && email.trim().length > 0 ? email.trim() : null
+  const normalizedLocale =
+    typeof locale === 'string' && locale.trim().length > 0 ? locale.trim() : 'zh-TW'
+
+  await firestore.runTransaction(async (tx) => {
+    const snapshot = await tx.get(userRef)
+    if (snapshot.exists) {
+      const existingData = snapshot.data() ?? {}
+      const patch: Record<string, unknown> = {}
+      if (normalizedEmail && !existingData.email) {
+        patch.email = normalizedEmail
+      }
+      if (Object.keys(patch).length > 0) {
+        patch.updatedAt = admin.firestore.FieldValue.serverTimestamp()
+        tx.set(userRef, patch, { merge: true })
+      }
+      return
+    }
+
+    const timestamp = admin.firestore.FieldValue.serverTimestamp()
+    tx.set(userRef, {
+      email: normalizedEmail,
+      locale: normalizedLocale,
+      preferredCurrency: 'TWD',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+  })
+}
+
 export const ping = onRequest({ region: REGION }, (_request, response) => {
   response.status(200).send('ok')
 })
@@ -110,6 +149,13 @@ export const registerToken = onCall<{ token?: string; userId?: string; platform?
       throw new HttpsError('failed-precondition', 'Authentication is required to register a token')
     }
 
+    const authEmail =
+      typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null
+    const authLocale =
+      typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null
+
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale })
+
     const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown'
     const sanitizedId = sanitizeForKey(`${userId}:${token}`)
     const tokenRef = getFirestore().collection('user_tokens').doc(sanitizedId)
@@ -140,6 +186,30 @@ export const registerToken = onCall<{ token?: string; userId?: string; platform?
   },
 )
 
+export const initUserProfile = onCall<{ locale?: string } | null>(
+  HTTPS_OPTIONS,
+  async (request) => {
+    const uid = request.auth?.uid
+    if (!uid) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Authentication is required to initialise user profile',
+      )
+    }
+
+    const localeInput = typeof request.data?.locale === 'string' ? request.data.locale.trim() : ''
+    const authLocale =
+      typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null
+    const resolvedLocale = localeInput || authLocale
+    const authEmail =
+      typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null
+
+    await ensureUserProfile({ uid, email: authEmail, locale: resolvedLocale })
+
+    return { ok: true }
+  },
+)
+
 export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, async (request) => {
   const userId =
     request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '')
@@ -149,6 +219,12 @@ export const sendTestPush = onCall<{ userId?: string } | null>(HTTPS_OPTIONS, as
       'Authentication is required to send a test push notification',
     )
   }
+
+  const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null
+  const authLocale =
+    typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null
+
+  await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale })
 
   const tokens = await fetchUserTokens(userId)
   if (tokens.length === 0) {
@@ -263,6 +339,13 @@ export const sendTestEmail = onCall<{ userId?: string; email?: string } | null>(
       throw new HttpsError('failed-precondition', 'Authentication is required to send a test email')
     }
 
+    const authEmail =
+      typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null
+    const authLocale =
+      typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null
+
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale })
+
     const userRecord = await admin
       .auth()
       .getUser(userId)
@@ -322,6 +405,10 @@ export const setUserLocale = onCall<{ locale?: string } | null>(HTTPS_OPTIONS, a
   }
 
   const normalized = resolveLocaleTag(localeInput)
+  const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null
+
+  await ensureUserProfile({ uid: userId, email: authEmail, locale: normalized })
+
   await getFirestore().collection('users').doc(userId).set(
     {
       locale: normalized,
