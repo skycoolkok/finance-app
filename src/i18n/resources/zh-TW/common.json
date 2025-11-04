@@ -1,4 +1,7 @@
 {
+  "common": {
+  "unknown": "未知"
+  },
   "language": {
     "label": "介面語言",
     "en": "英文",
@@ -316,12 +319,12 @@
       },
       "devSummary": "DEV · 當前貨幣：{{currency}}",
       "fxRatesAdmin": {
-        "title": "匯率管理（Admin）",
+        "title": "外匯匯率 · 管理",
         "subtitle": "自動來源不可用時，可在此手動輸入匯率。",
         "hint": "數值以 1 TWD 為基準。",
         "currentDate": "生效日期",
         "currentSource": "來源",
-
+        "ratesMeta": "來源：{{source}} · 生效：{{date}}",
         "updatedAt": "更新於 {{time}}",
 
         "active": "是否啟用",
@@ -329,7 +332,7 @@
         "reset": "重設",
         "save": "儲存",
         "saving": "儲存中…",
-
+        "ready": "匯率服務已就緒。",
         "checking": "正在確認管理權限...",
         "loginPrompt": "請登入以維護匯率。",
         "noPermission": "您沒有維護匯率權限。",

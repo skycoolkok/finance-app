@@ -1,4 +1,8 @@
 {
+  "common": {
+  "unknown": "Unknown"
+  },
+
   "language": {
     "label": "Language",
     "en": "English",
@@ -324,13 +328,13 @@
         "currentSource": "Source",
 
         "updatedAt": "Updated at {{time}}",
-
+        "ratesMeta": "Source: {{source}} · Effective: {{date}}",
         "active": "Active",
         "activeYes": "yes",
         "reset": "Reset",
         "save": "Save",
         "saving": "Saving...",
-
+        "ready": "Rates service is ready.",
         "checking": "Checking FX admin access...",
         "loginPrompt": "Sign in to maintain FX rates.",
         "noPermission": "You do not have permission to maintain FX rates.",
