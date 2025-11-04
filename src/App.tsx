@@ -7,8 +7,7 @@ import CardList from './components/CardList'
 import { Dashboard } from './components/Dashboard'
 import { NotificationCenter } from './components/NotificationCenter'
 import { DiagBadge } from './components/DiagBadge'
-import AuthButton from './components/AuthButton'
-import FxAdminPlaceholder from './components/FxAdminPlaceholder'
+import DashboardLayout from './layouts/DashboardLayout'
 import { HealthCheck } from './components/HealthCheck'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
@@ -21,12 +20,6 @@ import { auth } from './firebase'
 import { checkFxAdmin } from './functions'
 import { buildId } from './version'
 import type { Card, Wallet } from './models/types'
-
-/** 補齊缺的元件 imports  */
-import LanguageSwitcher from './components/LanguageSwitcher'
-import SettingsFxAdmin from './components/SettingsFxAdmin'
-import SettingsPreferences from './components/SettingsPreferences'
-import SettingsNotifications from './components/SettingsNotifications'
 
 export default function App() {
   const { t, i18n } = useTranslation()
@@ -47,12 +40,7 @@ export default function App() {
 
   const userId = authUser?.uid ?? null
 
-  const {
-    preferredCurrency,
-    loading: currencyLoading,
-    setPreferredCurrency,
-    availableCurrencies,
-  } = useUserPrefs(userId)
+  const { preferredCurrency, loading: currencyLoading } = useUserPrefs(userId)
 
   const shouldSubscribeFx = Boolean(authUser)
   const {
@@ -145,69 +133,44 @@ export default function App() {
     setIsWalletFormOpen(false)
   }
 
-  const renderFxAdminSection = () => {
+  const adminStatusMessage = (() => {
     if (authLoading || fxAdminState === 'checking') {
-      return (
-        <FxAdminPlaceholder
-          title={fxAdminTitle}
-          message={t('settings.preferences.fxRatesAdmin.checking', 'Checking admin permissions…')}
-        />
-      )
+      return t('settings.preferences.fxRatesAdmin.checking', 'Checking admin permissions...')
     }
-
     if (!authUser) {
-      return (
-        <FxAdminPlaceholder
-          title={fxAdminTitle}
-          message={t(
-            'settings.preferences.fxRatesAdmin.loginPrompt',
-            'Sign in to manage exchange rates.',
-          )}
-        />
-      )
+      return t('settings.preferences.fxRatesAdmin.loginPrompt', 'Sign in to manage exchange rates.')
     }
-
     if (fxAdminState !== 'allowed') {
-      return (
-        <FxAdminPlaceholder
-          title={fxAdminTitle}
-          message={t(
-            'settings.preferences.fxRatesAdmin.noPermission',
-            'You do not have permission to manage exchange rates.',
-          )}
-        />
+      return t(
+        'settings.preferences.fxRatesAdmin.noPermission',
+        'You do not have permission to manage exchange rates.',
       )
     }
+    return t('settings.preferences.fxRatesAdmin.ready', 'FX rate controls will appear here soon.')
+  })()
 
-    return (
-      <SettingsFxAdmin
-        rates={rates}
-        active={ratesActive}
-        effectiveDate={ratesEffectiveDate}
-        source={ratesSource}
-        updatedAt={ratesUpdatedAt}
-        loading={ratesLoading}
-      />
-    )
-  }
+  const drawerSupportContent = (
+    <div className="space-y-2 text-sm text-slate-300">
+      <p className="font-semibold text-slate-100">{fxAdminTitle}</p>
+      <p>{adminStatusMessage}</p>
+      <p className="text-xs text-slate-500">
+        {t('settings.preferences.fxRatesAdmin.ratesMeta', {
+          defaultValue: 'Last updated: {{date}} · Source: {{source}}',
+          date: ratesUpdatedAt ?? t('common.unknown', 'unknown'),
+          source: ratesSource ?? t('common.unknown', 'unknown'),
+        })}
+      </p>
+    </div>
+  )
 
-  /** 唯一的 return（已移除舊檔案尾端的重複 return 與多餘的 </>） */
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-8 p-4 text-slate-100">
-      {import.meta.env.DEV && <DiagBadge preferredCurrency={preferredCurrency} />}
-
-      <header className="rounded border border-slate-800 bg-slate-900/40 p-6 shadow">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">{t('app.title')}</h1>
-            <p className="mt-2 text-sm text-slate-400">{t('app.subtitle')}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <AuthButton user={authUser} loading={authLoading} />
-          </div>
-        </div>
-      </header>
+    <DashboardLayout
+      user={authUser}
+      authLoading={authLoading}
+      sidebar={<NotificationCenter userId={userId} authReady={!authLoading} />}
+      drawerContent={drawerSupportContent}
+    >
+      {import.meta.env.DEV ? <DiagBadge preferredCurrency={preferredCurrency} /> : null}
 
       <Dashboard
         userId={userId}
@@ -246,13 +209,13 @@ export default function App() {
             </button>
           </div>
 
-          {isWalletFormOpen && (
+          {isWalletFormOpen ? (
             <WalletForm
               userId={userId}
               existingWallet={editingWallet}
               onComplete={handleWalletFormComplete}
             />
-          )}
+          ) : null}
 
           <WalletList userId={userId} onEdit={handleEditWallet} />
         </div>
@@ -263,21 +226,7 @@ export default function App() {
         <TransactionList userId={userId} preferredCurrency={preferredCurrency} rates={rates} />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <NotificationCenter userId={userId} />
-        <div className="space-y-6">
-          <SettingsPreferences
-            preferredCurrency={preferredCurrency}
-            availableCurrencies={availableCurrencies}
-            setPreferredCurrency={setPreferredCurrency}
-            currencyLoading={currencyLoading || ratesLoading}
-          />
-          <SettingsNotifications userId={userId} />
-          {renderFxAdminSection()}
-        </div>
-      </section>
-
       <footer className="text-right text-xs text-slate-500">Build: {buildId}</footer>
-    </div>
+    </DashboardLayout>
   )
 }
