@@ -1,66 +1,54 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 type DrawerTabKey = 'preferences' | 'notifications' | 'admin'
 
 type RightDrawerProps = {
   open: boolean
   onClose: () => void
-  showAdminTab?: boolean
   children?: ReactNode
 }
 
-export function RightDrawer({ open, onClose, showAdminTab = false, children }: RightDrawerProps) {
-  const [activeTab, setActiveTab] = useState<DrawerTabKey>('preferences')
+const TAB_CONFIG: Array<{ key: DrawerTabKey; label: string; description: string }> = [
+  {
+    key: 'preferences',
+    label: 'Preferences',
+    description:
+      'Account preferences will live here. Expect currency, locale, and other personalization controls.',
+  },
+  {
+    key: 'notifications',
+    label: 'Notifications',
+    description:
+      'Notification delivery settings and test tools will move into this tab. Stay tuned for granular controls.',
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    description:
+      'FX admin and rollout toggles will appear here for authorized users. This is just a placeholder for now.',
+  },
+]
 
-  const tabs = useMemo(() => {
-    const baseTabs: Array<{ key: DrawerTabKey; label: string }> = [
-      { key: 'preferences', label: 'Preferences' },
-      { key: 'notifications', label: 'Notifications' },
-    ]
-    if (showAdminTab) {
-      baseTabs.push({ key: 'admin', label: 'Admin' })
-    }
-    return baseTabs
-  }, [showAdminTab])
+export function RightDrawer({ open, onClose, children }: RightDrawerProps) {
+  const [activeTab, setActiveTab] = useState<DrawerTabKey>('preferences')
 
   useEffect(() => {
     if (!open) {
       setActiveTab('preferences')
-    } else if (activeTab === 'admin' && !showAdminTab) {
-      setActiveTab('preferences')
     }
-  }, [open, showAdminTab, activeTab])
+  }, [open])
 
   if (!open) {
     return null
   }
 
-  const renderTabContent = () => {
-    if (activeTab === 'preferences') {
-      return (
-        <>
-          <p className="text-sm text-slate-300">偏好設定的內容即將在此提供。敬請期待後續更新。</p>
-          {children ? <div className="mt-4">{children}</div> : null}
-        </>
-      )
-    }
-    if (activeTab === 'notifications') {
-      return (
-        <p className="text-sm text-slate-300">
-          通知測試工具將搬遷到這裡，讓你更輕鬆地發送測試推播與電子郵件。
-        </p>
-      )
-    }
-    return (
-      <p className="text-sm text-slate-300">管理員工具會集中在這個分頁。僅限具備權限的帳號使用。</p>
-    )
-  }
+  const activeTabConfig = TAB_CONFIG.find((tab) => tab.key === activeTab) ?? TAB_CONFIG[0]
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
-        aria-label="關閉設定面板"
+        aria-label="Close settings drawer"
         className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition hover:bg-slate-950/70"
         onClick={onClose}
       />
@@ -68,18 +56,19 @@ export function RightDrawer({ open, onClose, showAdminTab = false, children }: R
         id="settings-drawer"
         className="relative h-full w-full max-w-md border-l border-slate-800 bg-slate-950 text-slate-100 shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <h2 className="text-lg font-semibold">設定</h2>
+        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+          <h2 className="text-lg font-semibold">Settings</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 transition hover:bg-slate-800/60"
+            className="rounded border border-slate-700 px-3 py-1 text-sm text-slate-200 transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
           >
-            關閉
+            Close
           </button>
         </div>
-        <div className="flex border-b border-slate-800">
-          {tabs.map((tab) => {
+
+        <nav className="flex border-b border-slate-800">
+          {TAB_CONFIG.map((tab) => {
             const isActive = tab.key === activeTab
             return (
               <button
@@ -96,8 +85,12 @@ export function RightDrawer({ open, onClose, showAdminTab = false, children }: R
               </button>
             )
           })}
+        </nav>
+
+        <div className="space-y-4 px-6 py-6">
+          <p className="text-sm leading-relaxed text-slate-300">{activeTabConfig.description}</p>
+          {children ? <div className="rounded border border-slate-800 p-4">{children}</div> : null}
         </div>
-        <div className="space-y-4 p-6">{renderTabContent()}</div>
       </aside>
     </div>
   )
