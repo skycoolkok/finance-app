@@ -5,9 +5,8 @@ const firebase_functions_1 = require("firebase-functions");
 const https_1 = require("firebase-functions/v2/https");
 const env_1 = require("./notif/env");
 const params_1 = require("./params");
-const lazy_1 = require("./lib/lazy");
-const getMailer = (0, lazy_1.memo)(() => require('./mailer'));
-const getResendClientModule = (0, lazy_1.memo)(() => require('./resendClient'));
+const mailer_1 = require("./mailer");
+const resendClient_1 = require("./resendClient");
 const REGION = 'asia-east1';
 const HTTPS_OPTIONS = {
     region: REGION,
@@ -28,18 +27,16 @@ exports.sendTestEmailGet = (0, https_1.onRequest)(HTTPS_OPTIONS, async (req, res
         return;
     }
     const baseUrl = (0, env_1.getAppBaseUrl)();
-    const mailer = getMailer();
-    const resendClientModule = getResendClientModule();
     try {
-        await mailer.sendMail({
+        await (0, mailer_1.sendMail)({
             to: recipient,
-            subject: mailer.TEST_EMAIL_SUBJECT,
-            html: mailer.buildTestEmailHtml(baseUrl),
-            text: mailer.buildTestEmailText(baseUrl),
+            subject: mailer_1.TEST_EMAIL_SUBJECT,
+            html: (0, mailer_1.buildTestEmailHtml)(baseUrl),
+            text: (0, mailer_1.buildTestEmailText)(baseUrl),
         });
     }
     catch (error) {
-        if (error instanceof resendClientModule.MissingResendApiKeyError) {
+        if (error instanceof resendClient_1.MissingResendApiKeyError) {
             res.status(500).json({ error: 'RESEND_API_KEY is not configured.' });
             return;
         }
@@ -52,7 +49,7 @@ exports.sendTestEmailGet = (0, https_1.onRequest)(HTTPS_OPTIONS, async (req, res
     res.status(200).json({
         delivered: true,
         to: recipient,
-        subject: mailer.TEST_EMAIL_SUBJECT,
+        subject: mailer_1.TEST_EMAIL_SUBJECT,
     });
 });
 function normalizeQueryValue(value) {

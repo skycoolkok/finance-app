@@ -33,28 +33,21 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clickRedirect = exports.openPixel = exports.sendTestEmailGet = exports.scheduledBudget = exports.refreshFxRates = exports.setUserLocale = exports.sendTestEmail = exports.isFxAdmin = exports.setFxRates = exports.sendTestPush = exports.registerToken = exports.pingCallable = exports.ping = void 0;
+exports.clickRedirect = exports.openPixel = exports.sendTestEmailGet = exports.scheduledBudget = exports.refreshFxRates = exports.setUserLocale = exports.sendTestEmail = exports.isFxAdmin = exports.setFxRates = exports.sendTestPush = exports.initUserProfile = exports.registerToken = exports.pingCallable = exports.ping = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firebase_functions_1 = require("firebase-functions");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
+const engine_1 = require("./notif/engine");
 const env_1 = require("./notif/env");
 const budgetEngine_1 = require("./notif/budgetEngine");
 const utils_1 = require("./notif/utils");
 const admin_1 = require("./lib/admin");
 const lazy_1 = require("./lib/lazy");
 const params_1 = require("./params");
-const getNotificationModule = (0, lazy_1.memo)(() => require('./notif/engine'));
-const getMailerModule = (0, lazy_1.memo)(() => require('./mailer'));
-const getTemplatesModule = (0, lazy_1.memo)(() => require('./templates'));
-const getTestMailModule = (0, lazy_1.memo)(() => require('./testMail'));
-const getResendModule = (0, lazy_1.memo)(() => require('./resendClient'));
-const getNotificationEngineClass = () => getNotificationModule().NotificationEngine;
-const fetchUserLocaleLazy = (options) => getNotificationModule().fetchUserLocale(options);
-const logNotificationRecordLazy = (firestore, record) => getNotificationModule().logNotificationRecord(firestore, record);
-const resolveLocaleTagLazy = (locale) => getTemplatesModule().resolveLocaleTag(locale);
-const getMailer = () => getMailerModule();
-const getSendTestEmailGet = () => getTestMailModule().sendTestEmailGet;
+const templates_1 = require("./templates");
+const mailer_1 = require("./mailer");
+const resendClient_1 = require("./resendClient");
 const REGION = 'asia-east1';
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const HTTPS_OPTIONS = {
@@ -86,6 +79,35 @@ if (!admin.apps.length) {
 }
 const getFirestore = (0, lazy_1.memo)(() => admin.firestore());
 const getMessaging = (0, lazy_1.memo)(() => admin.messaging());
+async function ensureUserProfile({ uid, email, locale }) {
+    const firestore = getFirestore();
+    const userRef = firestore.collection('users').doc(uid);
+    const normalizedEmail = typeof email === 'string' && email.trim().length > 0 ? email.trim() : null;
+    const normalizedLocale = typeof locale === 'string' && locale.trim().length > 0 ? locale.trim() : 'zh-TW';
+    await firestore.runTransaction(async (tx) => {
+        const snapshot = await tx.get(userRef);
+        if (snapshot.exists) {
+            const existingData = snapshot.data() ?? {};
+            const patch = {};
+            if (normalizedEmail && !existingData.email) {
+                patch.email = normalizedEmail;
+            }
+            if (Object.keys(patch).length > 0) {
+                patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+                tx.set(userRef, patch, { merge: true });
+            }
+            return;
+        }
+        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+        tx.set(userRef, {
+            email: normalizedEmail,
+            locale: normalizedLocale,
+            preferredCurrency: 'TWD',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+        });
+    });
+}
 exports.ping = (0, https_1.onRequest)({ region: REGION }, (_request, response) => {
     response.status(200).send('ok');
 });
@@ -127,6 +149,9 @@ exports.registerToken = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!userId) {
         throw new https_1.HttpsError('failed-precondition', 'Authentication is required to register a token');
     }
+    const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null;
+    const authLocale = typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null;
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale });
     const platform = typeof request.data?.platform === 'string' ? request.data.platform : 'unknown';
     const sanitizedId = (0, utils_1.sanitizeForKey)(`${userId}:${token}`);
     const tokenRef = getFirestore().collection('user_tokens').doc(sanitizedId);
@@ -153,16 +178,31 @@ exports.registerToken = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     });
     return { token };
 });
+exports.initUserProfile = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+        throw new https_1.HttpsError('failed-precondition', 'Authentication is required to initialise user profile');
+    }
+    const localeInput = typeof request.data?.locale === 'string' ? request.data.locale.trim() : '';
+    const authLocale = typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null;
+    const resolvedLocale = localeInput || authLocale;
+    const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null;
+    await ensureUserProfile({ uid, email: authEmail, locale: resolvedLocale });
+    return { ok: true };
+});
 exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     const userId = request.auth?.uid ?? (typeof request.data?.userId === 'string' ? request.data.userId : '');
     if (!userId) {
         throw new https_1.HttpsError('failed-precondition', 'Authentication is required to send a test push notification');
     }
+    const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null;
+    const authLocale = typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null;
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale });
     const tokens = await fetchUserTokens(userId);
     if (tokens.length === 0) {
         throw new https_1.HttpsError('failed-precondition', 'No device tokens registered for this user');
     }
-    const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId });
+    const locale = await (0, engine_1.fetchUserLocale)({ firestore: getFirestore(), userId });
     const appBaseUrl = (0, env_1.getAppBaseUrl)();
     const response = await getMessaging().sendEachForMulticast({
         tokens,
@@ -176,7 +216,7 @@ exports.sendTestPush = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
             locale,
         },
     });
-    await logNotificationRecordLazy(getFirestore(), {
+    await (0, engine_1.logNotificationRecord)(getFirestore(), {
         userId,
         type: 'test-push',
         message: 'Test push notification dispatched.',
@@ -238,6 +278,9 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!userId) {
         throw new https_1.HttpsError('failed-precondition', 'Authentication is required to send a test email');
     }
+    const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null;
+    const authLocale = typeof request.auth?.token?.locale === 'string' ? request.auth.token.locale : null;
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: authLocale });
     const userRecord = await admin
         .auth()
         .getUser(userId)
@@ -247,20 +290,18 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!email) {
         throw new https_1.HttpsError('failed-precondition', 'No email address available for this user');
     }
-    const locale = await fetchUserLocaleLazy({ firestore: getFirestore(), userId });
+    const locale = await (0, engine_1.fetchUserLocale)({ firestore: getFirestore(), userId });
     const appBaseUrl = (0, env_1.getAppBaseUrl)();
-    const mailer = getMailer();
-    const resendModule = getResendModule();
     try {
-        await mailer.sendMail({
+        await (0, mailer_1.sendMail)({
             to: email,
-            subject: mailer.TEST_EMAIL_SUBJECT,
-            html: mailer.buildTestEmailHtml(appBaseUrl),
-            text: mailer.buildTestEmailText(appBaseUrl),
+            subject: mailer_1.TEST_EMAIL_SUBJECT,
+            html: (0, mailer_1.buildTestEmailHtml)(appBaseUrl),
+            text: (0, mailer_1.buildTestEmailText)(appBaseUrl),
         });
     }
     catch (error) {
-        if (error instanceof resendModule.MissingResendApiKeyError) {
+        if (error instanceof resendClient_1.MissingResendApiKeyError) {
             throw new https_1.HttpsError('failed-precondition', 'RESEND_API_KEY is not configured');
         }
         firebase_functions_1.logger.error('Failed to send test email.', normalizeError(error), {
@@ -269,7 +310,7 @@ exports.sendTestEmail = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
         });
         throw new https_1.HttpsError('internal', 'Unable to send test email');
     }
-    await logNotificationRecordLazy(getFirestore(), {
+    await (0, engine_1.logNotificationRecord)(getFirestore(), {
         userId,
         type: 'test-email',
         message: 'Test email notification dispatched.',
@@ -288,7 +329,9 @@ exports.setUserLocale = (0, https_1.onCall)(HTTPS_OPTIONS, async (request) => {
     if (!localeInput) {
         throw new https_1.HttpsError('invalid-argument', 'locale is required');
     }
-    const normalized = resolveLocaleTagLazy(localeInput);
+    const normalized = (0, templates_1.resolveLocaleTag)(localeInput);
+    const authEmail = typeof request.auth?.token?.email === 'string' ? request.auth.token.email : null;
+    await ensureUserProfile({ uid: userId, email: authEmail, locale: normalized });
     await getFirestore().collection('users').doc(userId).set({
         locale: normalized,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -299,14 +342,12 @@ exports.refreshFxRates = (0, scheduler_1.onSchedule)(FX_SCHEDULE_OPTIONS, async 
     firebase_functions_1.logger.info('refreshFxRates stub executed - configure an external provider to enable updates.');
 });
 exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async () => {
-    const resendModule = getResendModule();
-    const resendClient = await resendModule.getResendClientOrNull();
+    const resendClient = await (0, resendClient_1.getResendClientOrNull)();
     if (!resendClient) {
         firebase_functions_1.logger.warn('RESEND_API_KEY is not configured. Email notifications will be skipped.');
     }
     const baseUrl = (0, env_1.getAppBaseUrl)();
-    const NotificationEngineCtor = getNotificationEngineClass();
-    const notificationEngine = new NotificationEngineCtor({
+    const notificationEngine = new engine_1.NotificationEngine({
         firestore: getFirestore(),
         messaging: getMessaging(),
         resendClient,
@@ -317,7 +358,8 @@ exports.scheduledBudget = (0, scheduler_1.onSchedule)(SCHEDULE_OPTIONS, async ()
     await processCardReminders(notificationEngine);
     await processBudgetAlerts(notificationEngine);
 });
-exports.sendTestEmailGet = ((...args) => getSendTestEmailGet()(...args));
+var testMail_1 = require("./testMail");
+Object.defineProperty(exports, "sendTestEmailGet", { enumerable: true, get: function () { return testMail_1.sendTestEmailGet; } });
 var openPixel_1 = require("./tracking/openPixel");
 Object.defineProperty(exports, "openPixel", { enumerable: true, get: function () { return openPixel_1.openPixel; } });
 var clickRedirect_1 = require("./tracking/clickRedirect");
