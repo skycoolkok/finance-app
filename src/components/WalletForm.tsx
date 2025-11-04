@@ -164,13 +164,15 @@ export default function WalletForm({ userId, existingWallet, onComplete }: Walle
     try {
       await clearOtherDefaultWallets()
 
-      const payload: Omit<Wallet, 'id'> = {
-        name: form.name.trim(),
-        linkedCardId: form.linkedCardId ? form.linkedCardId : undefined,
-        isDefault: form.isDefault,
-        note: form.note.trim() ? form.note.trim() : undefined,
-        userId,
-      }
+      // ✅ 這段會把可能是 undefined 的欄位改成 Firestore 接受的型態
+  const payload: Omit<Wallet, 'id'> = {
+  name: form.name.trim(),
+  linkedCardId: form.linkedCardId ? form.linkedCardId : null, // 沒選卡片 → null
+  isDefault: !!form.isDefault,
+  note: form.note?.trim() ?? '',                              // 沒填備註 → 空字串
+  userId,
+}
+
 
       if (isEditing && existingWallet) {
         await updateDoc(doc(db, 'wallets', existingWallet.id), payload)

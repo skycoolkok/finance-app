@@ -1,32 +1,23 @@
 {
   "name": "functions",
   "private": true,
-  "type": "commonjs",
   "main": "lib/index.js",
   "engines": {
     "node": "20"
   },
   "scripts": {
-    "build": "tsc -p .",
-    "ci": "npm ci",
-    "clean": "rimraf lib",
-    "lint": "eslint .",
-    "predeploy": "npm run clean && npm ci && npm run build"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "firebase-admin": "^13.5.0",
-    "firebase-functions": "^6.6.0",
+    "finance-app": "file:..",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.4.1",
     "handlebars": "^4.7.8",
-    "mjml": "^4.14.1",
-    "resend": "^3.5.0"
+    "mjml": "^4.15.3",
+    "resend": "^2.0.0"
   },
   "devDependencies": {
-    "@types/handlebars": "^4.1.0",
     "@types/node": "^20.11.30",
-    "@typescript-eslint/parser": "^8.14.0",
-    "eslint": "^9.13.0",
-    "rimraf": "^6.0.1",
     "typescript": "^5.6.3"
   }
 }

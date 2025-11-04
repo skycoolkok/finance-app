@@ -20,9 +20,8 @@ async function renderEmailTemplate(options) {
             return renderFromCache(cached, options.context);
         }
         const template = await tryLoadTemplate(candidate.filePath);
-        if (!template) {
+        if (!template)
             continue;
-        }
         const compile = handlebars_1.default.compile(template, { noEscape: false });
         const type = candidate.extension === '.mjml' ? 'mjml' : 'hbs';
         const entry = { type, compile };
@@ -39,7 +38,7 @@ function renderFromCache(entry, context) {
             validationLevel: 'soft',
         });
         if (result.errors?.length) {
-            throw new Error(`MJML render failed: ${result.errors.map((error) => error.formattedMessage).join('; ')}`);
+            throw new Error(`MJML render failed: ${result.errors.map((e) => e.formattedMessage).join('; ')}`);
         }
         return result.html;
     }
@@ -75,9 +74,8 @@ async function tryLoadTemplate(filePath) {
         return await (0, promises_1.readFile)(filePath, 'utf8');
     }
     catch (error) {
-        if (error.code === 'ENOENT') {
+        if (error.code === 'ENOENT')
             return null;
-        }
         throw error;
     }
 }
