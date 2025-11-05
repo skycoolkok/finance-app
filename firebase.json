@@ -2,7 +2,8 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20",
-    "predeploy": ["npm --prefix functions ci", "npm --prefix functions run build"]
+    "predeploy": ["npm --prefix functions ci", "npm --prefix functions run build"],
+    "ignore": ["**/node_modules/**", "**/.*/**", "functions/src/**", "functions/tsconfig*.json"]
   },
   "firestore": {
     "rules": "firestore.rules"

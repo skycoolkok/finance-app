@@ -1,8 +1,17 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import Handlebars from 'handlebars'
+import Handlebars, { type TemplateDelegate } from 'handlebars'
 import mjml2html from 'mjml'
+
+interface MjmlError {
+  formattedMessage: string
+}
+
+interface MjmlResult {
+  html: string
+  errors: MjmlError[]
+}
 
 type TemplateKind = 'email'
 type Variant = 'A' | 'B'
@@ -10,7 +19,7 @@ type AppLocale = 'en' | 'zh-TW'
 
 type CacheEntry = {
   type: 'mjml' | 'hbs'
-  compile: HandlebarsTemplateDelegate
+  compile: TemplateDelegate<Record<string, unknown>>
 }
 
 type RenderEmailOptions = {
@@ -36,14 +45,17 @@ export async function renderEmailTemplate(options: RenderEmailOptions): Promise<
     }
 
     const template = await tryLoadTemplate(candidate.filePath)
-    if (!template) {
-      continue
-    }
+    if (!template) continue
 
-    const compile = Handlebars.compile(template, { noEscape: false })
-    const type = candidate.extension === '.mjml' ? 'mjml' : 'hbs'
+    const compile: TemplateDelegate<Record<string, unknown>> = Handlebars.compile(template, {
+      noEscape: false,
+    })
+
+    const type: CacheEntry['type'] = candidate.extension === '.mjml' ? 'mjml' : 'hbs'
+
     const entry: CacheEntry = { type, compile }
     TEMPLATE_CACHE.set(candidate.cacheKey, entry)
+
     return renderFromCache(entry, options.context)
   }
 
@@ -58,10 +70,11 @@ function renderFromCache(entry: CacheEntry, context: Record<string, unknown>): s
     const result = mjml2html(templated, {
       minify: true,
       validationLevel: 'soft',
-    })
+    }) as MjmlResult
+
     if (result.errors?.length) {
       throw new Error(
-        `MJML render failed: ${result.errors.map((error) => error.formattedMessage).join('; ')}`,
+        `MJML render failed: ${result.errors.map((e) => e.formattedMessage).join('; ')}`,
       )
     }
     return result.html
@@ -110,9 +123,7 @@ async function tryLoadTemplate(filePath: string): Promise<string | null> {
   try {
     return await readFile(filePath, 'utf8')
   } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null
-    }
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
     throw error
   }
 }

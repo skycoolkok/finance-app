@@ -17,7 +17,7 @@ import { useFxRates } from './hooks/useFxRates'
 import { useUserPrefs } from './hooks/useUserPrefs'
 import { initFcmAndRegister } from './messaging'
 import { auth } from './firebase'
-import { checkFxAdmin } from './functions'
+import { checkFxAdmin, initUserProfile } from './functions'
 import { buildId } from './version'
 import type { Card, Wallet } from './models/types'
 
@@ -37,6 +37,18 @@ export default function App() {
     })
     return () => unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (isHealthRoute || authLoading || !authUser) {
+      return
+    }
+
+    void initUserProfile({}).catch((error) => {
+      if (import.meta.env.DEV) {
+        console.error('initUserProfile failed', error)
+      }
+    })
+  }, [authLoading, authUser, isHealthRoute])
 
   const userId = authUser?.uid ?? null
 
