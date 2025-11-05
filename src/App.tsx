@@ -39,16 +39,17 @@ export default function App() {
   }, [])
 
   // src/App.tsx 內，保持你前面的程式不動，只替換這個 useEffect 區塊
-useEffect(() => {
-  if (isHealthRoute || authLoading || !authUser) return;
-
-  void initUserProfile({ locale: i18n.language }).catch((error) => {
-    if (import.meta.env.DEV) {
-      console.error('initUserProfile failed', error);
+  useEffect(() => {
+    if (isHealthRoute || authLoading || !authUser) {
+      return
     }
-  });
-}, [isHealthRoute, authLoading, authUser, i18n.language]);
 
+    void initUserProfile({ locale: i18n.language }).catch((error) => {
+      if (import.meta.env.DEV) {
+        console.error('initUserProfile failed', error)
+      }
+    })
+  }, [isHealthRoute, authLoading, authUser, i18n.language])
 
   const userId = authUser?.uid ?? null
 
