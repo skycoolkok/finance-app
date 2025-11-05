@@ -45,8 +45,10 @@ export default function App() {
 
 
     void initUserProfile({ locale: i18n.language }).catch((error) => {
+
   if (import.meta.env.DEV) {
     console.error('initUserProfile failed', error)
+
 
       }
     })
