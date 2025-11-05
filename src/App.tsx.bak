@@ -34,15 +34,17 @@ export default function App() {
   const [isWalletFormOpen, setIsWalletFormOpen] = useState(false)
   const isHealthRoute = typeof window !== 'undefined' && window.location.pathname === '/__health'
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setAuthUser(nextUser)
-      setAuthLoading(false)
-    })
-    return () => {
-      unsubscribe()
+  // src/App.tsx 內，保持你前面的程式不動，只替換這個 useEffect 區塊
+useEffect(() => {
+  if (isHealthRoute || authLoading || !authUser) return;
+
+  void initUserProfile({ locale: i18n.language }).catch((error) => {
+    if (import.meta.env.DEV) {
+      console.error('initUserProfile failed', error);
     }
-  }, [])
+  });
+}, [isHealthRoute, authLoading, authUser, i18n.language]);
+
 
   const userId = authUser?.uid ?? null
 

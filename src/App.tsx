@@ -38,17 +38,18 @@ export default function App() {
     return () => unsubscribe()
   }, [])
 
+  // src/App.tsx 內，保持你前面的程式不動，只替換這個 useEffect 區塊
   useEffect(() => {
     if (isHealthRoute || authLoading || !authUser) {
       return
     }
 
-    void initUserProfile({}).catch((error) => {
+    void initUserProfile({ locale: i18n.language }).catch((error) => {
       if (import.meta.env.DEV) {
         console.error('initUserProfile failed', error)
       }
     })
-  }, [authLoading, authUser, isHealthRoute])
+  }, [isHealthRoute, authLoading, authUser, i18n.language])
 
   const userId = authUser?.uid ?? null
 

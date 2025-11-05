@@ -3,7 +3,7 @@ import type { CurrencyCode } from './lib/money'
 import { app } from './firebase'
 
 // 初始化 Functions
-const fns = getFunctions(app, 'asia-east1')
+const fns = getFunctions(app, 'us-central1')
 
 // 只在本機環境連 emulator
 if (location.hostname === 'localhost') {

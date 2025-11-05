@@ -1,8 +1,8 @@
-// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---- 共用判斷 ----
     function signedIn() {
       return request.auth != null;
     }
@@ -19,34 +19,33 @@ service cloud.firestore {
       return signedIn() && request.resource.data.userId == request.auth.uid;
     }
 
-    // 允許的應用 collections
-    function appColl(name) {
-      return name in ['cards', 'wallets', 'transactions', 'budgets', 'notifications', 'user_tokens'];
-    }
-
-    // 使用者自己的文件
+    // ---- users 僅本人可讀寫 ----
     match /users/{uid} {
       allow read, write: if isOwner(uid);
     }
 
-    // 應用資料：用 collectionId 做白名單，並驗證 userId
-    match /{collId}/{docId} {
-      // 讀 / 列表（使用現有文件的 collectionId）
-      allow get, list: if appColl(resource.__name__.collectionId) && isDocOwner();
-
-      // 建立 / 更新（用 request.resource 的 collectionId）
-      allow create, update: if appColl(request.resource.__name__.collectionId) && isReqOwner();
-
-      // 刪除
-      allow delete: if appColl(resource.__name__.collectionId) && isDocOwner();
+    // ---- App 內需要 userId 欄位的 collections ----
+    function appColl(name) {
+      return name in ['cards', 'wallets', 'transactions', 'budgets', 'notifications', 'user_tokens'];
     }
 
-    // 匯率：公開讀、受限寫
+    // 讀：文件 userId 必須是本人
+    // 新增/更新：request body 的 userId 必須是本人
+    // 刪除：文件 userId 必須是本人
+    match /{colName}/{docId} {
+      allow read:   if appColl(colName) && isDocOwner();
+      allow create, update: if appColl(colName) && isReqOwner();
+      allow delete: if appColl(colName) && isDocOwner();
+    }
+
+    // ---- 匯率：任何人可讀；僅 Cloud Functions 可寫 ----
     match /fx_rates/{doc} {
       allow read: if true;
       allow write: if signedIn() && (
+        // 由 Functions 以 custom token 寫入
         (request.auth.token.firebase != null &&
          request.auth.token.firebase.sign_in_provider == 'custom')
+        // 或明確帶有自訂角色 'functions'
         || request.auth.token.role == 'functions'
       );
     }
