@@ -26,7 +26,8 @@ let functionsInstance: Functions | null = null
 
 function getFunctionsInstance() {
   if (!functionsInstance) {
-    functionsInstance = getFunctions(app, 'asia-east1')
+    functionsInstance = getFunctions(app, 'us-central1')
+
 
     if (import.meta.env.DEV) {
       connectFunctionsEmulator(functionsInstance, 'localhost', 5001)

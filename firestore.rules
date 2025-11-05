@@ -7,48 +7,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(uid) {
-      return signedIn() && request.auth.uid == uid;
-    }
-
-    function isDocOwner() {
-      return signedIn() && resource.data.userId == request.auth.uid;
-    }
-
-    function isReqOwner() {
-      return signedIn() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // 允許的應用 collections
-    function appColl(name) {
-      return name in ['cards', 'wallets', 'transactions', 'budgets', 'notifications', 'user_tokens'];
-    }
-
-    // 使用者自己的文件
-    match /users/{uid} {
-      allow read, write: if isOwner(uid);
-    }
-
-    // 應用資料：用 collectionId 做白名單，並驗證 userId
-    match /{collId}/{docId} {
-      // 讀 / 列表（使用現有文件的 collectionId）
-      allow get, list: if appColl(resource.__name__.collectionId) && isDocOwner();
-
-      // 建立 / 更新（用 request.resource 的 collectionId）
-      allow create, update: if appColl(request.resource.__name__.collectionId) && isReqOwner();
-
-      // 刪除
-      allow delete: if appColl(resource.__name__.collectionId) && isDocOwner();
-    }
-
-    // 匯率：公開讀、受限寫
-    match /fx_rates/{doc} {
-      allow read: if true;
-      allow write: if signedIn() && (
-        (request.auth.token.firebase != null &&
-         request.auth.token.firebase.sign_in_provider == 'custom')
-        || request.auth.token.role == 'functions'
-      );
+    // 臨時開發規則：只要登入就可讀寫（上線驗收用）
+    match /{document=**} {
+      allow read, write: if signedIn();
     }
   }
 }
