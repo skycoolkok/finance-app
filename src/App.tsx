@@ -43,9 +43,11 @@ export default function App() {
       return
     }
 
+
     void initUserProfile({ locale: i18n.language }).catch((error) => {
   if (import.meta.env.DEV) {
     console.error('initUserProfile failed', error)
+
       }
     })
   }, [authLoading, authUser, isHealthRoute])
