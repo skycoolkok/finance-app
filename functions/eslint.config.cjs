@@ -3,7 +3,7 @@ const tsParser = require('@typescript-eslint/parser')
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
   {
-    ignores: ['lib/**']
+    ignores: ['lib/**'],
   },
   {
     files: ['src/**/*.ts'],
@@ -11,9 +11,9 @@ module.exports = [
       parser: tsParser,
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: __dirname
-      }
+        tsconfigRootDir: __dirname,
+      },
     },
-    rules: {}
-  }
+    rules: {},
+  },
 ]

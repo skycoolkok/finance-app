@@ -1,10 +1,9 @@
 // functions/src/index.ts（加在最上層匯出區）
-import { onRequest } from 'firebase-functions/v2/https';
+import { onRequest } from 'firebase-functions/v2/https'
 
 export const health = onRequest((req, res) => {
-  res.status(200).send('ok');
-});
-
+  res.status(200).send('ok')
+})
 
 import * as admin from 'firebase-admin'
 import { logger } from 'firebase-functions'
